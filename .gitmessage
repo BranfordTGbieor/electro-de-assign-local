@@ -1,0 +1,15 @@
+type(scope): concise summary
+
+- describe the first concrete change
+- describe the second concrete change
+- note verification or follow-up when relevant
+
+# Type must be one of:
+# feat, fix, chore, docs, test, refactor, perf, ci
+#
+# Examples:
+# feat(ingestion): add watermark lookback handling
+#
+# - persist high-water mark in DuckDB control table
+# - apply CSV/API lower-bound filtering during incremental runs
+# - verify with make clean run and make test
