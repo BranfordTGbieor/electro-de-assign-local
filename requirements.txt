@@ -3,3 +3,4 @@ python-dotenv>=1.0.1
 requests>=2.32.0
 pycountry>=24.6.1
 pytest>=8.2.0
+ruff>=0.8.0

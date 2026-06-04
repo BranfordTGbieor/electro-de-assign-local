@@ -1,5 +1,7 @@
 # electrolux-de-assignment-local
 
+[![ci](https://github.com/BranfordTGbieor/electro-de-assign-local/actions/workflows/ci.yml/badge.svg)](https://github.com/BranfordTGbieor/electro-de-assign-local/actions/workflows/ci.yml)
+
 Local-first implementation of the Senior Platform Data Engineer assignment. The project ingests transaction records from CSV by default, optionally supports a Supabase REST API source, validates records, quarantines invalid data, flags duplicate real-world transactions, stores data in DuckDB, builds a daily account summary, and persists an incremental ingestion watermark.
 
 The repository is intentionally self-contained. `data/transactions.csv` contains the assignment dataset and `data/transactions_schema.json` contains the schema reference. The pipeline does not hardcode record counts, invalid IDs, duplicate IDs, or date ranges.
@@ -83,6 +85,7 @@ Watermark state is stored in `control_ingestion_watermarks`. The first run has n
 ## Tests
 
 ```bash
+make lint
 make test
 ```
 
@@ -90,7 +93,7 @@ Coverage includes validation edge cases, duplicate natural-key behavior, waterma
 
 ## CI and Commit Discipline
 
-The repository includes GitHub Actions CI in `.github/workflows/ci.yml`. It installs dependencies, runs the full local pipeline from a clean state, runs an additional incremental pass, and executes pytest.
+The repository includes GitHub Actions CI in `.github/workflows/ci.yml`. CI is split into separate jobs for linting, unit tests, and the end-to-end local Makefile pipeline.
 
 Commit messages should follow the structured multi-line convention in `CONTRIBUTING.md`. A local template is available in `.gitmessage`.
 

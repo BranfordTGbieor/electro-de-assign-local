@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 from datetime import datetime, timezone
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 

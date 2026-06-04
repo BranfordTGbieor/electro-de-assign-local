@@ -1,7 +1,8 @@
 PYTHON ?= .venv/bin/python
 PYTEST ?= .venv/bin/pytest
+RUFF ?= .venv/bin/ruff
 
-.PHONY: setup clean ingest incremental transform run run-incremental test dbt-run dbt-test
+.PHONY: setup clean ingest incremental transform run run-incremental lint test dbt-run dbt-test
 
 setup:
 	python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
@@ -24,6 +25,9 @@ run:
 
 run-incremental:
 	$(PYTHON) -m src.run_pipeline --mode incremental
+
+lint:
+	$(RUFF) check src tests
 
 test:
 	$(PYTEST) -q

@@ -9,8 +9,8 @@ on:
       - main
 
 jobs:
-  local-pipeline:
-    name: local pipeline and tests
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,11 +30,56 @@ jobs:
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
 
-      - name: Run full local pipeline
+      - name: Run lint checks
+        run: make lint
+
+  unit-tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: make test
+
+  local-pipeline:
+    name: local pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Run full Makefile pipeline
         run: make clean run
 
       - name: Verify repeated incremental run
         run: make run-incremental
-
-      - name: Run tests
-        run: make test
