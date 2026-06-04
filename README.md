@@ -1,10 +1,15 @@
 # electrolux-de-assignment-local
 
 [![ci](https://github.com/BranfordTGbieor/electro-de-assign-local/actions/workflows/ci.yml/badge.svg)](https://github.com/BranfordTGbieor/electro-de-assign-local/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-local_warehouse-FFF000?logo=duckdb&logoColor=black)
+![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)
+![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
+![Local First](https://img.shields.io/badge/runtime-local_first-2E7D32)
 
 Local-first implementation of the Senior Platform Data Engineer assignment. The project ingests transaction records from CSV by default, optionally supports a Supabase REST API source, validates records, quarantines invalid data, flags duplicate real-world transactions, stores data in DuckDB, builds a daily account summary, and persists an incremental ingestion watermark.
 
-The repository is intentionally self-contained. `data/transactions.csv` contains the assignment dataset and `data/transactions_schema.json` contains the schema reference. The pipeline does not hardcode record counts, invalid IDs, duplicate IDs, or date ranges.
+The local project directory is intentionally self-contained. The assignment dataset and schema are expected at `data/transactions.csv` and `data/transactions_schema.json`; those files are kept out of Git because the submitted artifact is the local project directory, not the GitHub repository alone. The pipeline does not hardcode record counts, invalid IDs, duplicate IDs, or date ranges.
 
 ## Stack
 
@@ -40,6 +45,13 @@ WATERMARK_LOOKBACK_DAYS=2
 ```
 
 API mode uses `TRANSACTIONS_SOURCE=api` and requires `TRANSACTIONS_API_KEY`. API failures can fall back to CSV when `ALLOW_CSV_FALLBACK=true`.
+
+The full pipeline requires the assignment files to exist locally:
+
+```text
+data/transactions.csv
+data/transactions_schema.json
+```
 
 ## Run
 
@@ -93,7 +105,7 @@ Coverage includes validation edge cases, duplicate natural-key behavior, waterma
 
 ## CI and Commit Discipline
 
-The repository includes GitHub Actions CI in `.github/workflows/ci.yml`. CI is split into separate jobs for linting, unit tests, and the end-to-end local Makefile pipeline.
+The repository includes GitHub Actions CI in `.github/workflows/ci.yml`. CI is split into separate jobs for linting and unit tests. The end-to-end pipeline remains a local verification step because the assignment data files are intentionally not tracked in Git.
 
 Commit messages should follow the structured multi-line convention in `CONTRIBUTING.md`. A local template is available in `.gitmessage`.
 

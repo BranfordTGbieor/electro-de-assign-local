@@ -6,6 +6,8 @@ __pycache__/
 .agents/
 .codex/
 .vscode/
+data/*.csv
+data/*.json
 outputs/*.csv
 outputs/*.json
 *.duckdb
