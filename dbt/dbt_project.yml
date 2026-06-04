@@ -1,0 +1,13 @@
+name: electrolux_de_assignment_local
+version: "1.0"
+config-version: 2
+profile: electrolux_de_assignment_local
+
+model-paths: ["models"]
+
+models:
+  electrolux_de_assignment_local:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

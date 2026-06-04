@@ -1,0 +1,6 @@
+electrolux_de_assignment_local:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../.local/transactions.duckdb

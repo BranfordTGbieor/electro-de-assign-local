@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Transactions",
+  "type": "object",
+  "required": [
+    "transaction_id",
+    "account_id",
+    "transaction_date",
+    "amount",
+    "currency",
+    "transaction_type",
+    "merchant_name",
+    "merchant_category",
+    "status",
+    "country_code"
+  ],
+  "properties": {
+    "id": { "type": ["integer", "string"] },
+    "transaction_id": { "type": "string", "pattern": "^TXN-[0-9]{4}$" },
+    "account_id": { "type": "string", "pattern": "^ACC-[0-9]{4}$" },
+    "transaction_date": { "type": "string", "format": "date-time" },
+    "amount": { "type": ["number", "string"], "exclusiveMinimum": 0 },
+    "currency": { "enum": ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"] },
+    "transaction_type": { "enum": ["debit", "credit"] },
+    "merchant_name": { "type": "string", "minLength": 1 },
+    "merchant_category": {
+      "enum": [
+        "e-commerce",
+        "travel",
+        "food_and_beverage",
+        "groceries",
+        "electronics",
+        "retail",
+        "entertainment",
+        "health",
+        "transportation",
+        "home_and_garden",
+        "payroll",
+        "transfer"
+      ]
+    },
+    "status": { "enum": ["completed", "pending", "failed", "reversed"] },
+    "country_code": { "type": "string", "minLength": 2, "maxLength": 2 }
+  }
+}

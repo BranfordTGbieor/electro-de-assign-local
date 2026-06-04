@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: daily_account_summary
+    columns:
+      - name: account_id
+        tests:
+          - not_null
+      - name: transaction_date
+        tests:
+          - not_null
+      - name: transaction_count
+        tests:
+          - not_null

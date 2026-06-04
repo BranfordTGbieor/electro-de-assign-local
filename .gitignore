@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.local/
+.agents/
+.codex/
+.vscode/
+outputs/*.csv
+outputs/*.json
+*.duckdb
+*.duckdb.wal
+dbt/target/
+dbt/logs/
+.env

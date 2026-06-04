@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: stg_transactions_valid
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+      - name: account_id
+        tests:
+          - not_null
+      - name: transaction_date
+        tests:
+          - not_null

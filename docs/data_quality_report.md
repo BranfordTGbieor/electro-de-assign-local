@@ -1,0 +1,28 @@
+# Data Quality Report
+
+This report reflects the assignment dataset after running `make run`.
+
+## Summary
+
+- Source records read: 352
+- Valid records persisted: 349
+- Quarantined records: 3
+- Duplicate real-world transactions flagged: 5
+- Canonical valid records: 344
+- Daily account summary rows: 257
+
+The incremental simulation reads 9 records from the two-day lookback window, validates 7 of them, reprocesses 2 invalid records already known to quarantine, inserts 0 new valid records, and keeps the watermark at `2024-03-30T22:35:29Z`.
+
+## Validation Categories
+
+Validation checks include required fields, `TXN-NNNN` and `ACC-NNNN` ID formats, strict UTC timestamp format, real calendar dates, decimal amount greater than zero, case-sensitive enum values, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes.
+
+The dataset includes invalid rows covering zero or negative amount, missing merchant name, non-strict timestamp format, invalid calendar date, invalid enum casing, unsupported merchant category, and invalid country codes.
+
+## Quarantine Handling
+
+Invalid records are written to `bronze_transactions_quarantine` and exported to `outputs/quarantine_records.csv`. Each quarantined row includes the raw payload, semicolon-separated error reasons, error count, source, batch ID, and ingestion timestamp. No invalid records are silently dropped.
+
+## Duplicate Handling
+
+Duplicates are identified by comparing all natural-key fields except `transaction_id` and API `id`. The assignment dataset has 5 duplicate real-world transactions with different transaction IDs. These rows remain in bronze with `is_duplicate = true`, are mirrored to `bronze_transactions_duplicates`, and are excluded from `gold_daily_account_summary`.
