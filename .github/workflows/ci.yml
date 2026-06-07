@@ -28,10 +28,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install -r requirements.txt
+        run: make setup
 
       - name: Run lint checks
         run: make lint
@@ -53,10 +50,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install -r requirements.txt
+        run: make setup
 
       - name: Run unit tests
         run: make test

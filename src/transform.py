@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 
+from src.assertions import run_assertions
 from src.config import load_settings
 from src.storage import connect, export_table
 
@@ -69,15 +70,16 @@ ORDER BY daily.account_id, daily.transaction_date
 """
 
 
-def run_transform() -> dict[str, int]:
+def run_transform() -> dict[str, object]:
     settings = load_settings()
     conn = connect(settings.duckdb_path)
     conn.execute(DAILY_SUMMARY_SQL)
     export_table(conn, "gold_daily_account_summary", settings.output_dir / "daily_account_summary.csv")
     row_count = int(conn.execute("SELECT COUNT(*) FROM gold_daily_account_summary").fetchone()[0])
+    assertion_result = run_assertions(conn, settings.output_dir / "data_quality_assertions.json")
     LOGGER.info("Built gold_daily_account_summary with %s rows", row_count)
     conn.close()
-    return {"daily_summary_rows": row_count}
+    return {"daily_summary_rows": row_count, "assertions_passed": assertion_result["passed"]}
 
 
 def main() -> None:

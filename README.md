@@ -31,7 +31,7 @@ make setup
 If your machine forces a private package index, run:
 
 ```bash
-.venv/bin/pip install -i https://pypi.org/simple -r requirements.txt
+.venv/bin/python -m pip install -i https://pypi.org/simple -r requirements.txt
 ```
 
 Configuration lives in `.env.example`. Defaults use CSV mode:
@@ -74,13 +74,14 @@ Generated files are written under `outputs/`:
 - `daily_account_summary.csv`: daily account-level curated aggregate
 - `watermark_run1.json`: first successful load state
 - `watermark_run2.json`: incremental run state
+- `data_quality_assertions.json`: table-level assertion results for the curated layer
 - `run_summary.json`: pipeline summary
 
 Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, and 257 daily summary rows. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`.
 
 ## Data Quality
 
-Validation is implemented in `src/validation.py`. It checks required fields, ID formats, strict UTC timestamps, positive decimal amounts, case-sensitive enums, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. Invalid records are not dropped or coerced; all validation errors for each record are collected and written to `bronze_transactions_quarantine` plus `outputs/quarantine_records.csv`.
+Validation is implemented in `src/validation.py`. It checks required fields, ID formats, strict UTC timestamps, positive decimal amounts, case-sensitive enums, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. CSV timestamps ending in `Z` and Supabase API timestamps ending in `+00:00` are accepted and normalized to canonical `Z` form before storage. Invalid records are not dropped or coerced; all validation errors for each record are collected and written to `bronze_transactions_quarantine` plus `outputs/quarantine_records.csv`.
 
 ## Duplicate Strategy
 
@@ -101,7 +102,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, duplicate natural-key behavior, watermark updates and lookback calculation, and daily summary exclusion rules.
+Coverage includes validation edge cases, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, and table-level gold assertions.
 
 ## CI and Commit Discipline
 

@@ -15,7 +15,7 @@ The incremental simulation reads 9 records from the two-day lookback window, val
 
 ## Validation Categories
 
-Validation checks include required fields, `TXN-NNNN` and `ACC-NNNN` ID formats, strict UTC timestamp format, real calendar dates, decimal amount greater than zero, case-sensitive enum values, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes.
+Validation checks include required fields, `TXN-NNNN` and `ACC-NNNN` ID formats, strict UTC timestamp format, real calendar dates, decimal amount greater than zero, case-sensitive enum values, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. Timestamps ending in `Z` or Supabase's `+00:00` UTC offset are accepted and normalized to canonical `Z` form before storage.
 
 The dataset includes invalid rows covering zero or negative amount, missing merchant name, non-strict timestamp format, invalid calendar date, invalid enum casing, unsupported merchant category, and invalid country codes.
 
@@ -26,3 +26,7 @@ Invalid records are written to `bronze_transactions_quarantine` and exported to 
 ## Duplicate Handling
 
 Duplicates are identified by comparing all natural-key fields except `transaction_id` and API `id`. The assignment dataset has 5 duplicate real-world transactions with different transaction IDs. These rows remain in bronze with `is_duplicate = true`, are mirrored to `bronze_transactions_duplicates`, and are excluded from `gold_daily_account_summary`.
+
+## Curated Layer Assertions
+
+After each transform, the pipeline writes `outputs/data_quality_assertions.json`. These assertions verify required gold fields, uniqueness of `(account_id, transaction_date)`, positive transaction counts, `net_amount = total_credit_amount - total_debit_amount`, and exact parity between `gold_daily_account_summary` and the expected aggregation over completed, non-duplicate bronze records.

@@ -86,7 +86,7 @@ def validate_transaction(record: dict[str, Any]) -> dict[str, Any]:
     raw_date = str(record.get("transaction_date", ""))
     parsed_date = _parse_strict_utc_timestamp(raw_date)
     if parsed_date is None and raw_date:
-        errors.append("transaction_date must be a valid ISO 8601 UTC timestamp ending with Z")
+        errors.append("transaction_date must be a valid ISO 8601 UTC timestamp ending with Z or +00:00")
     elif parsed_date is not None:
         normalized["transaction_date"] = parsed_date.strftime("%Y-%m-%dT%H:%M:%SZ")
     else:
@@ -142,13 +142,16 @@ def validate_transactions(records: list[dict[str, Any]]) -> tuple[list[dict[str,
 
 
 def _parse_strict_utc_timestamp(value: str) -> datetime | None:
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|\+00:00)", value):
         return None
     try:
-        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+        if value.endswith("Z"):
+            parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+        else:
+            parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S%z")
     except ValueError:
         return None
-    return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _parse_amount(value: Any) -> Decimal | None:

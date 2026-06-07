@@ -1,11 +1,13 @@
 PYTHON ?= .venv/bin/python
-PYTEST ?= .venv/bin/pytest
-RUFF ?= .venv/bin/ruff
 
-.PHONY: setup clean ingest incremental transform run run-incremental lint test dbt-run dbt-test
+.PHONY: setup reset-venv clean ingest incremental transform run run-incremental lint test dbt-run dbt-test
 
 setup:
-	python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+	python3 -m venv --clear .venv
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install -r requirements.txt
+
+reset-venv: setup
 
 clean:
 	rm -rf .local outputs/*.csv outputs/*.json
@@ -27,10 +29,10 @@ run-incremental:
 	$(PYTHON) -m src.run_pipeline --mode incremental
 
 lint:
-	$(RUFF) check src tests
+	$(PYTHON) -m ruff check src tests
 
 test:
-	$(PYTEST) -q
+	$(PYTHON) -m pytest -q
 
 dbt-run:
 	cd dbt && dbt run

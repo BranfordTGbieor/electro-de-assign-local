@@ -1,270 +1,221 @@
-# TODO: Assignment Polish and Improvement Backlog
+# TODO: Assessment Audit Backlog
 
-This backlog is for optional improvements that could raise reviewer confidence beyond the current working solution. The current pipeline already runs end to end with the provided dataset, but these items would make the submission more rigorous, production-shaped, and easier to defend in review.
+This backlog reflects the current audit of the Senior Platform Data Engineer assignment submission. Existing outputs indicate the pipeline has run end to end before, but the items below would make the repository safer to submit, easier to verify from a clean checkout, and easier to defend in review.
 
-## Priority 0: Submission-Critical Polish
+## Completed
 
-### 1. Harden CI checks for the local platform workflow
+### Done: Normalize API timestamps with `+00:00` offsets
 
-Why it matters: The JD emphasizes automation, developer experience, and reducing human bottlenecks. CI proves the repo can be validated by a machine from a clean checkout.
+Why it mattered: The assignment states that Supabase returns timestamps like `2024-01-03T11:22:05+00:00` and expects normalization to `Z`. The validator previously accepted only `YYYY-MM-DDTHH:MM:SSZ`, which could quarantine valid API records.
 
-Subtasks:
+Completed:
 
-- Confirm the GitHub Actions workflow passes on the remote repository.
-- Add CI status badge to README after the first successful remote run.
-- Add a lint/type-check job once `ruff` or `mypy` is introduced.
-- Keep CI free of API secrets by using CSV mode for default checks.
-- Consider adding a second optional API smoke workflow triggered manually with repository secrets.
+- Accepted UTC timestamps ending in `Z` or `+00:00`.
+- Normalized accepted UTC values to canonical `YYYY-MM-DDTHH:MM:SSZ` before storage and hashing.
+- Kept rejecting missing timezones, missing `T`, invalid calendar dates, and non-UTC offsets.
+- Added validation tests for `Z`, `+00:00`, invalid offsets, invalid dates, and missing timezone.
+- Updated README and `docs/data_quality_report.md` with the normalization rule.
 
-### 2. Enforce structured commit discipline in automation
+### Done: Fix local setup and verification robustness
 
-Why it matters: Clean commit history is part of engineering hygiene and makes the submission look like real platform work, not a one-off script.
+Why it mattered: Reviewers will likely run the documented `make setup`, `make lint`, and `make test` commands. A stale `.venv` can leave non-executable console scripts or route `pip` outside the venv, causing reproducibility failures before code is tested.
 
-Subtasks:
+Completed:
 
-- Enable the local template with `git config commit.template .gitmessage`.
-- Add a commit-message lint workflow for pull requests after the first clean push.
-- Decide whether to enforce Conventional Commits exactly or keep the current pragmatic format.
-- Add examples for larger multi-line commits touching ingestion, transformation, tests, and docs.
+- Changed `make setup` to recreate `.venv` with `python3 -m venv --clear .venv`.
+- Installed dependencies through `.venv/bin/python -m pip`.
+- Added `make reset-venv` as an alias for setup.
+- Changed `make lint` and `make test` to run `$(PYTHON) -m ruff ...` and `$(PYTHON) -m pytest ...`.
+- Re-ran `make setup`, `make lint`, `make test`, `make clean`, `make run`, and `make run-incremental` successfully.
 
-### 3. Align the local schema file with the provided assignment schema
+### Done: Add SQL-level data quality assertions for the gold table
 
-Why it matters: The external `transactions_schema.json` is more detailed than the current local schema file. The validator implements most important rules, but the checked-in schema reference should match the assignment artifact.
+Why it mattered: The assignment requires dbt tests or equivalent assertions. Unit tests are useful, but table-level assertions make the non-dbt path more explicit and reviewer-friendly.
 
-Subtasks:
+Completed:
 
-- Replace `data/transactions_schema.json` with the provided Draft-07 assignment schema.
-- Confirm whether the schema should allow Supabase's extra `id` field in API mode, or whether `id` should be stripped before schema validation and preserved separately.
-- Add a test that fails if the local schema file drifts from the assignment schema in required fields, enums, and key constraints.
-- Update README to state that custom validation supplements the JSON schema for rules such as real assigned ISO country codes.
+- Added `src/assertions.py` with gold checks for required fields, unique `(account_id, transaction_date)`, positive transaction counts, and `net_amount = total_credit_amount - total_debit_amount`.
+- Added a parity assertion proving `gold_daily_account_summary` matches the expected aggregation over completed, non-duplicate bronze rows.
+- Ran assertions after `run_transform()`.
+- Exported `outputs/data_quality_assertions.json`.
+- Added tests that verify passing assertions and intentional assertion failure behavior.
 
-### 4. Normalize API timestamps with `+00:00` offsets
+## Priority 0: Submission-Critical
 
-Why it matters: The DOCX says Supabase returns `transaction_date` values like `2024-01-03T11:22:05+00:00`, while the validator currently expects strict `Z` timestamps.
+### 1. Decide and document the Git submission artifact policy
 
-Subtasks:
-
-- Accept valid UTC offsets such as `+00:00` from the API client.
-- Normalize accepted UTC timestamps to canonical `YYYY-MM-DDTHH:MM:SSZ` before storage.
-- Keep rejecting non-UTC offsets unless the design explicitly converts them to UTC.
-- Add tests for `Z`, `+00:00`, invalid calendar dates, missing `T`, and missing timezone.
-- Document the normalization behavior in README and `docs/data_quality_report.md`.
-
-### 5. Strengthen SQL-level data quality assertions
-
-Why it matters: Tests currently cover important Python behavior, but reviewers may expect explicit table-level assertions for the curated layer.
+Why it matters: The assignment asks for a Git repository, but `data/*.csv`, `data/*.json`, and `outputs/*.csv/json` are ignored. A reviewer cloning only GitHub will not get the provided dataset, schema, or required output artifacts.
 
 Subtasks:
 
-- Add a `src/assertions.py` module with SQL assertions for:
-  - no null `account_id` in gold
-  - no null `transaction_date` in gold
-  - unique `(account_id, transaction_date)` in gold
-  - `transaction_count >= 1`
-  - `net_amount = total_credit_amount - total_debit_amount`
-  - no duplicate or non-completed records contributing to gold
-- Wire assertions into `src.run_pipeline` after `run_transform()`.
-- Export assertion results to `outputs/data_quality_assertions.json`.
-- Add tests that intentionally create bad gold data and verify assertions fail clearly.
+- Decide whether to commit the assignment input files and generated output samples, or provide a separate release/archive with those files.
+- If files remain ignored, add explicit README instructions for where to place `transactions.csv` and `transactions_schema.json`, and how to regenerate every output.
+- Consider committing small reviewer artifacts such as `outputs/quarantine_records.csv`, `outputs/duplicate_records.csv`, `outputs/daily_account_summary.csv`, and watermark JSON files if the assignment platform accepts them.
+- Add a final submission checklist covering `make clean`, `make run`, `make run-incremental`, `make test`, output existence, and secret scan.
 
-### 6. Add a clearer incremental demo with synthetic new records
+### 2. Demonstrate incremental ingestion with synthetic new April records
 
-Why it matters: The assignment hint suggests inserting 2-3 April 2024 records after the first load to prove the second run processes only new records.
+Why it matters: The current incremental run demonstrates idempotent lookback reprocessing with no new data. The assignment hint specifically recommends inserting 2-3 April 2024 records after the first load and proving only those are processed.
 
 Subtasks:
 
 - Add `make demo-incremental-new-data`.
-- Create a small controlled input file, for example `data/incremental_new_transactions.csv`.
-- Add code to run first load, append or stage April 2024 records, run incremental load, and show only those records are inserted.
-- Export `outputs/watermark_run3_new_data.json`.
-- Document the difference between:
-  - no-new-data incremental run
-  - lookback reprocessing
-  - truly new late or future records
+- Stage a tiny controlled input file such as `data/incremental_new_transactions.csv`.
+- Run full load, stage April records, run incremental load, and export `outputs/watermark_run3_new_data.json`.
+- Document the difference between no-new-data reprocessing, lookback reprocessing, and truly new records.
+- Add a test or smoke check proving only the staged records are newly inserted.
+
+### 3. Clarify the dbt stance and remove broken expectations
+
+Why it matters: dbt files and Make targets are present, but `dbt-core` and `dbt-duckdb` are not installed by default, and the dbt mart does not match the Python SQL output because it lacks `top_category`.
+
+Subtasks:
+
+- Either make dbt fully executable or document it as scaffolding only.
+- If supporting dbt, add optional dbt requirements, make `make dbt-run` and `make dbt-test` work, and align the dbt mart columns with `gold_daily_account_summary`.
+- If not supporting dbt, remove or clearly label `dbt-run` and `dbt-test` as optional.
+- Update README so reviewers do not expect dbt to be part of the default verification path.
+
+### 4. Align schema references and validation with the provided Draft-07 schema
+
+Why it matters: The local ignored schema is looser and uses Draft 2020-12, while the provided assignment schema is Draft-07 with `additionalProperties: false` and stronger field constraints. The code loads the schema file but relies on hardcoded Python checks, so schema drift does not currently affect validation.
+
+Subtasks:
+
+- Replace the local schema reference with the provided Draft-07 schema before submission.
+- Decide how API-only `id` is handled: strip before schema validation or validate separately while preserving it as source metadata.
+- Decide whether to use JSON Schema validation directly, or explicitly document that Python validation is the authoritative implementation.
+- Add validation checks or documented assumptions for schema-level details not currently enforced, including two-decimal `amount` granularity, unexpected extra fields, and the assignment account/date ranges if treating those as constraints.
+- Add a small tracked schema-contract test or fixture that verifies required fields, enums, and key patterns do not drift.
+- Document that custom Python validation supplements JSON Schema for assigned ISO country codes.
 
 ## Priority 1: High-Value Engineering Improvements
 
-### 7. Add platform observability and run telemetry
+### 5. Add API source contract tests
 
-Why it matters: The JD explicitly calls out observability, monitoring, audit trails, reliability, and recovery. A small local telemetry layer would signal that mindset.
+Why it matters: API support is a meaningful alignment point with Task 1, but the current tests do not verify pagination, headers, retry behavior, or CSV/API normalization parity.
 
 Subtasks:
 
-- Export `outputs/metrics.json` with record counts, durations, watermark freshness, duplicate rate, quarantine rate, and summary row count.
-- Add structured JSON logs for ingestion and transform.
+- Mock paginated API responses including the final short page.
+- Verify required `apikey` and `Authorization` headers are sent.
+- Verify `limit`, `offset`, `order=transaction_date.asc`, and `transaction_date=gte.<watermark>` query parameters.
+- Test 401 behavior, 429 retry, 5xx retry, timeout retry, and failure after max retries.
+- Test CSV and API payloads normalize to the same downstream shape.
+
+### 6. Improve source and config validation
+
+Why it matters: Senior platform code should fail early with actionable messages for bad runtime settings.
+
+Subtasks:
+
+- Validate `PAGE_LIMIT > 0` and `WATERMARK_LOOKBACK_DAYS >= 0`.
+- Validate `TRANSACTIONS_SOURCE` before source loading.
+- Consider setting `ALLOW_CSV_FALLBACK=false` by default in API mode so real API failures are not hidden during reviewer testing.
+- Parse CSV watermark filtering through timestamp normalization instead of string comparison.
+
+### 7. Add observability and run telemetry
+
+Why it matters: The role emphasizes reliability, monitoring, audit trails, and recovery.
+
+Subtasks:
+
+- Emit structured JSON logs for ingestion, validation, transform, and API retries.
+- Add per-step durations to `outputs/run_summary.json`.
+- Export `outputs/metrics.json` with counts, duplicate rate, quarantine rate, watermark freshness, and summary row count.
 - Add warning thresholds for unexpected quarantine or duplicate spikes.
-- Add `docs/runbook.md` with how to investigate validation spikes, stale watermarks, failed transforms, and API failures.
-- Add example DuckDB queries for operational review.
+- Add `docs/runbook.md` with failure investigation queries.
 
-### 8. Add security, governance, and cost-control notes
+### 8. Improve idempotent upsert and audit metadata
 
-Why it matters: The JD calls out access control, compliance, resource management, and preventing cloud costs from growing unchecked.
-
-Subtasks:
-
-- Expand `docs/production_notes.md` with:
-  - Azure Key Vault secret flow
-  - Unity Catalog grants and table ownership
-  - PII/data classification assumptions
-  - encryption at rest and in transit
-  - job-cluster auto-termination and budget alerts
-- Add a small `docs/governance.md` with local-to-production controls.
-- Add README note that API keys are never committed and are only read from environment variables.
-
-### 9. Make dbt optional but fully executable
-
-Why it matters: dbt Core is encouraged. The repo includes dbt scaffolding, but the main workflow intentionally uses DuckDB SQL.
+Why it matters: Delete-then-insert by `transaction_id` works locally, but merge-like semantics and first/last seen metadata are easier to defend as platform design.
 
 Subtasks:
 
-- Decide whether dbt should be a supported path or explicitly documented as scaffolding only.
-- If supporting dbt:
-  - add `dbt-core` and `dbt-duckdb` to requirements or an optional `requirements-dbt.txt`
-  - fix `dbt/models/marts/daily_account_summary.sql` to include all required columns, including `top_category`
-  - add schema tests for not-null, uniqueness, accepted values, and relationship-like checks where useful
-  - make `make dbt-run` and `make dbt-test` work from a clean repo
-- If not supporting dbt:
-  - say clearly in README that equivalent SQL and pytest assertions are used instead.
+- Use DuckDB `MERGE INTO` if the installed DuckDB version supports it reliably.
+- Track `first_seen_batch_id`, `last_seen_batch_id`, `created_at`, and `updated_at`.
+- Preserve the first ingestion timestamp and update only reprocessing metadata.
+- Add tests proving reprocessing updates metadata without changing canonical counts.
 
-### 10. Add structured logging and run metadata
+### 9. Decide quarantine history semantics
 
-Why it matters: Senior platform engineering submissions benefit from operational visibility.
+Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload and error set. That is idempotent, but it loses repeated-attempt history.
 
 Subtasks:
 
-- Emit JSON logs for ingestion and transform steps.
-- Include `batch_id`, source, mode, lower bound, records read, valid, quarantined, duplicated, inserted, and duration.
-- Add per-step timings to `outputs/run_summary.json`.
-- Log API retry attempts with status code, retry number, and sleep duration.
-- Add a README example of a successful run summary.
-
-### 11. Improve idempotent upsert semantics
-
-Why it matters: The current delete-then-insert by `transaction_id` is effective locally, but explicit merge-like semantics are easier to defend.
-
-Subtasks:
-
-- Replace delete-then-insert with DuckDB `MERGE INTO` if the installed DuckDB version supports it reliably.
-- Track `first_seen_batch_id`, `last_seen_batch_id`, `created_at`, and `updated_at` separately.
-- Preserve original ingestion timestamp for first arrival and update only `updated_at` on reprocessing.
-- Add a test proving reprocessing the same record updates metadata without changing canonical counts.
-
-### 12. Improve quarantine idempotency and audit history
-
-Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload. That is clean for idempotency, but operational teams may want attempt history.
-
-Subtasks:
-
-- Decide between current unique invalid payload behavior and append-only quarantine history.
-- If append-only, add `attempt_number` or `run_seen_count`.
+- Decide between unique invalid payloads and append-only quarantine history.
 - If unique, document why repeated invalid records do not create duplicate quarantine rows.
-- Add a test for invalid records reprocessed through the lookback window.
+- If append-only, add `attempt_number`, `run_seen_count`, or separate attempt metadata.
+- Add tests for invalid records reprocessed through the lookback window.
 
-### 13. Add source contract tests for API and CSV parity
+### 10. Make exported SQL and runtime SQL consistent
 
-Why it matters: The source abstraction is a strong design point. Contract tests make it explicit.
-
-Subtasks:
-
-- Add fixture records representing CSV and API payloads.
-- Test that both source paths produce the same normalized downstream shape.
-- Mock API pagination with multiple pages and final empty page.
-- Mock API 429, 5xx, timeout, and 401 behavior.
-- Verify API mode sends `limit`, `offset`, `order=transaction_date.asc`, and `transaction_date=gte.<watermark>`.
-
-## Priority 2: Data Modeling and Output Polish
-
-### 14. Add a silver layer
-
-Why it matters: The current design uses bronze and gold. A small silver layer would make the raw-vs-curated separation more explicit.
+Why it matters: `sql/daily_account_summary.sql` uses `arg_max(merchant_category, amount)`, while `src/transform.py` ranks category totals. Reviewers may inspect the SQL file directly.
 
 Subtasks:
 
-- Add `silver_transactions_clean` containing valid, non-duplicate rows with canonical typed columns.
-- Keep `bronze_transactions_valid` as audit-oriented raw valid storage.
-- Build gold from silver instead of bronze.
-- Add docs explaining bronze, quarantine, silver, duplicate audit, and gold responsibilities.
+- Update `sql/daily_account_summary.sql` to match `src/transform.py`.
+- Update `sql/ddl.sql` to include `bronze_transactions_duplicates` and `gold_daily_account_summary`.
+- Add a lightweight check that SQL reference files do not drift from runtime DDL/transform logic, or state which source is authoritative.
 
-### 15. Add stronger deterministic CSV export behavior
+### 11. Correct CI and verification documentation
 
-Why it matters: Deterministic outputs are easier for reviewers to diff.
-
-Subtasks:
-
-- Use table-specific ordering instead of `ORDER BY 1, 2` for all exports.
-- Sort valid rows by `transaction_date, transaction_id`.
-- Sort quarantine rows by `transaction_id`.
-- Sort duplicate rows by `duplicate_group_id, duplicate_rank, transaction_id`.
-- Sort daily summary by `account_id, transaction_date`.
-- Add a test that repeated exports are byte-stable except for expected timestamps.
-
-### 16. Add richer output profiling
-
-Why it matters: Reviewers can quickly see that the data was understood, not just processed.
+Why it matters: `CONTRIBUTING.md` says GitHub Actions runs the same local verification path, but the workflow currently runs lint and unit tests only. That mismatch can reduce reviewer trust in the automation story.
 
 Subtasks:
 
-- Export `outputs/data_profile.json` with:
-  - date range
-  - account count
-  - status distribution
-  - currency distribution
-  - transaction type distribution
-  - invalid count by rule
-  - duplicate group count
-- Add a short "Observed dataset profile" section to README.
-- Keep profile generation dynamic so it does not hardcode expected counts.
+- Update `CONTRIBUTING.md` to state exactly what CI runs today.
+- If assignment artifacts are committed or generated in CI, add a clean end-to-end job for `make clean`, `make run`, and `make run-incremental`.
+- Keep API-dependent checks out of default CI unless secrets are configured for a manual smoke workflow.
 
-### 17. Improve `top_category` definition
+## Priority 2: Modeling and Documentation Polish
 
-Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts regardless of debit or credit.
+### 12. Clarify `top_category` spend semantics
+
+Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts, including credits.
 
 Subtasks:
 
-- Confirm whether "spend" should mean debit-only, or all completed transaction amounts.
-- If debit-only, update SQL to rank categories by completed debit amount.
+- Decide whether spend means debit-only or all completed transaction amounts.
+- If debit-only, rank categories by completed debit amount.
 - Define deterministic tie-breaking by category name.
-- Add tests covering category ties and credit-only days.
+- Add tests for category ties and credit-only days.
 - Document the chosen interpretation.
 
-### 18. Add currency handling caveat
+### 13. Add a currency handling caveat
 
 Why it matters: The daily summary sums amounts across currencies, which may be acceptable for the assignment but is not financially correct in production.
 
 Subtasks:
 
 - Add a README note that no FX conversion is performed.
-- Consider grouping daily summary by `account_id`, `transaction_date`, and `currency`, or adding a separate currency-aware summary.
-- Document the production requirement for FX rates and reporting currency.
-- Add an optional `gold_daily_account_currency_summary`.
+- Consider a `gold_daily_account_currency_summary` grouped by account, date, and currency.
+- Document the production requirement for FX rates and a reporting currency.
 
-## Priority 3: Developer Experience and Review Polish
+### 14. Add a silver layer
 
-### 19. Add a one-command verification script
-
-Why it matters: Reviewers appreciate a single command that proves the repo works.
+Why it matters: The current implementation uses bronze and gold. A small silver layer would make raw, clean, duplicate-audit, quarantine, and curated responsibilities clearer.
 
 Subtasks:
 
-- Add `scripts/verify.sh`.
-- Run `make clean`, `make run`, `make run-incremental`, and `make test`.
-- Print the key output counts at the end.
-- Keep it POSIX shell and dependency-light.
+- Add `silver_transactions_clean` containing valid, non-duplicate rows with canonical typed columns.
+- Keep `bronze_transactions_valid` as audit-oriented valid raw storage.
+- Build gold from silver.
+- Document bronze, quarantine, duplicate, silver, and gold responsibilities.
 
-### 20. Add sample output snippets to README
+### 15. Add richer profiling and sample outputs
 
-Why it matters: The reviewer can understand expected results before opening CSV files.
+Why it matters: Reviewers can quickly see that the data was understood, not just processed.
 
 Subtasks:
 
-- Add a compact sample from `quarantine_records.csv`.
-- Add a compact sample from `duplicate_records.csv`.
-- Add a compact sample from `daily_account_summary.csv`.
-- Avoid pasting large tables into README.
+- Export `outputs/data_profile.json` with date range, account count, status distribution, currency distribution, type distribution, invalid count by rule, and duplicate group count.
+- Add compact README snippets from quarantine, duplicate, and daily summary outputs.
+- Keep all profile and sample counts generated, not hardcoded.
 
-### 21. Add architecture decision records
+### 16. Add architecture decision records
 
-Why it matters: Senior-level assignments reward explicit tradeoff reasoning.
+Why it matters: Senior-level submissions benefit from explicit tradeoff reasoning.
 
 Subtasks:
 
@@ -273,81 +224,34 @@ Subtasks:
 - Create `docs/adr/0003-use-watermark-lookback-window.md`.
 - Keep each ADR short: context, decision, consequences.
 
-### 22. Add type checking and linting
+## Priority 3: Optional Stretch
 
-Why it matters: It raises confidence in code hygiene.
-
-Subtasks:
-
-- Add `ruff` for linting and formatting.
-- Add `mypy` or `pyright` for type checking if the extra setup stays lightweight.
-- Add `make lint`.
-- Add `make format`.
-- Fix any issues without overengineering.
-
-### 23. Add a submission checklist
-
-Why it matters: Prevents last-minute misses.
+### 17. Add type checking and formatting targets
 
 Subtasks:
 
-- Add a section to README or this TODO for final submission checks:
-  - `make clean`
-  - `make run`
-  - `make run-incremental`
-  - `make test`
-  - confirm outputs exist
-  - confirm no secrets in repo
-  - confirm `.local/` and generated outputs are either intentionally ignored or intentionally included
-  - confirm README counts match latest output
+- Add `make format` using Ruff formatting.
+- Add `mypy` or `pyright` only if the setup stays lightweight.
+- Add type-checking to CI after local adoption.
 
-### 24. Initialize Git and create a clean commit history
-
-Why it matters: The assignment requires a Git repository submission.
+### 18. Add governance and cost-control notes
 
 Subtasks:
 
-- Run `git init` if this directory is still not a Git repo.
-- Review `.gitignore` before first commit.
-- Decide whether generated `outputs/*.csv` and `outputs/*.json` should be committed as reviewer artifacts or regenerated only.
-- Commit in logical chunks:
-  - project scaffold
-  - ingestion and validation
-  - transformations and watermarking
-  - tests and docs
-- Add a final README note explaining exactly how to regenerate ignored outputs.
+- Expand `docs/production_notes.md` with Azure Key Vault, Unity Catalog grants, managed identities, PII/data classification assumptions, encryption, auto-termination, and budget alerts.
+- Add `docs/governance.md` if the production notes become too large.
 
-## Optional Stretch Ideas
-
-### 25. Add local API integration smoke test
+### 19. Add a local API smoke command
 
 Subtasks:
 
 - Add `make api-smoke` that requires `TRANSACTIONS_SOURCE=api` and `TRANSACTIONS_API_KEY`.
 - Fetch a small page with `limit=5`.
 - Validate timestamp normalization and schema shape.
-- Do not make API smoke tests part of default `make test`.
-
-### 26. Add a lightweight dashboard-style output
-
-Subtasks:
-
-- Generate `outputs/summary_report.md`.
-- Include run counts, invalid rule counts, duplicate groups, and top account/date examples.
-- Keep it generated from DuckDB so it is reproducible.
-
-### 27. Add production runbook notes
-
-Subtasks:
-
-- Add `docs/runbook.md`.
-- Include how to investigate API failures, validation spikes, duplicate spikes, stale watermark, and failed transforms.
-- Include example queries for quarantine and duplicates.
+- Keep API smoke tests out of the default test suite.
 
 ## Suggested Next Three Changes
 
-If time is limited, do these first:
-
-1. Replace `data/transactions_schema.json` with the provided assignment schema and add schema drift tests.
-2. Add API `+00:00` timestamp normalization tests and implementation.
-3. Add SQL assertions plus `outputs/data_quality_assertions.json`.
+1. Decide whether required input/output artifacts are committed, attached, or regenerated by the reviewer.
+2. Demonstrate incremental ingestion with synthetic April records.
+3. Clarify the dbt stance by either making dbt executable or clearly removing it from the default path.

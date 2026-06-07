@@ -25,6 +25,34 @@ def test_valid_transaction_passes() -> None:
     assert result["normalized_record"]["transaction_date"] == "2024-01-15T10:30:00Z"
 
 
+def test_api_utc_offset_timestamp_is_normalized_to_z() -> None:
+    record = valid_record()
+    record["transaction_date"] = "2024-01-15T10:30:00+00:00"
+
+    result = validate_transaction(record)
+
+    assert result["is_valid"] is True
+    assert result["normalized_record"]["transaction_date"] == "2024-01-15T10:30:00Z"
+
+
+def test_non_utc_offset_timestamp_fails() -> None:
+    record = valid_record()
+    record["transaction_date"] = "2024-01-15T10:30:00+01:00"
+
+    errors = validate_transaction(record)["errors"]
+
+    assert "transaction_date must be a valid ISO 8601 UTC timestamp ending with Z or +00:00" in errors
+
+
+def test_timestamp_without_timezone_fails() -> None:
+    record = valid_record()
+    record["transaction_date"] = "2024-01-15T10:30:00"
+
+    errors = validate_transaction(record)["errors"]
+
+    assert "transaction_date must be a valid ISO 8601 UTC timestamp ending with Z or +00:00" in errors
+
+
 def test_amount_zero_and_negative_fail() -> None:
     zero = valid_record()
     zero["amount"] = "0"
