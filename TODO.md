@@ -40,20 +40,20 @@ Completed:
 - Exported `outputs/data_quality_assertions.json`.
 - Added tests that verify passing assertions and intentional assertion failure behavior.
 
+### Done: Decide and document the Git submission artifact policy
+
+Why it mattered: The assignment asks for a Git repository, but the provided dataset, schema, and generated outputs may be sensitive assessment artifacts. The repository needs a clear policy so reviewers understand which files are intentionally local/private and how to regenerate them.
+
+Completed:
+
+- Kept `data/*.csv`, `data/*.json`, and `outputs/*.csv/json` out of Git.
+- Documented that `data/transactions.csv` and `data/transactions_schema.json` must be placed locally for full pipeline runs.
+- Documented that output artifacts can be regenerated with `make clean && make run && make run-incremental`.
+- Kept CI focused on lint and unit tests because the private assignment data is not available in GitHub Actions.
+
 ## Priority 0: Submission-Critical
 
-### 1. Decide and document the Git submission artifact policy
-
-Why it matters: The assignment asks for a Git repository, but `data/*.csv`, `data/*.json`, and `outputs/*.csv/json` are ignored. A reviewer cloning only GitHub will not get the provided dataset, schema, or required output artifacts.
-
-Subtasks:
-
-- Decide whether to commit the assignment input files and generated output samples, or provide a separate release/archive with those files.
-- If files remain ignored, add explicit README instructions for where to place `transactions.csv` and `transactions_schema.json`, and how to regenerate every output.
-- Consider committing small reviewer artifacts such as `outputs/quarantine_records.csv`, `outputs/duplicate_records.csv`, `outputs/daily_account_summary.csv`, and watermark JSON files if the assignment platform accepts them.
-- Add a final submission checklist covering `make clean`, `make run`, `make run-incremental`, `make test`, output existence, and secret scan.
-
-### 2. Demonstrate incremental ingestion with synthetic new April records
+### 1. Demonstrate incremental ingestion with synthetic new April records
 
 Why it matters: The current incremental run demonstrates idempotent lookback reprocessing with no new data. The assignment hint specifically recommends inserting 2-3 April 2024 records after the first load and proving only those are processed.
 
@@ -65,7 +65,7 @@ Subtasks:
 - Document the difference between no-new-data reprocessing, lookback reprocessing, and truly new records.
 - Add a test or smoke check proving only the staged records are newly inserted.
 
-### 3. Clarify the dbt stance and remove broken expectations
+### 2. Clarify the dbt stance and remove broken expectations
 
 Why it matters: dbt files and Make targets are present, but `dbt-core` and `dbt-duckdb` are not installed by default, and the dbt mart does not match the Python SQL output because it lacks `top_category`.
 
@@ -76,13 +76,13 @@ Subtasks:
 - If not supporting dbt, remove or clearly label `dbt-run` and `dbt-test` as optional.
 - Update README so reviewers do not expect dbt to be part of the default verification path.
 
-### 4. Align schema references and validation with the provided Draft-07 schema
+### 3. Align schema references and validation with the provided Draft-07 schema
 
-Why it matters: The local ignored schema is looser and uses Draft 2020-12, while the provided assignment schema is Draft-07 with `additionalProperties: false` and stronger field constraints. The code loads the schema file but relies on hardcoded Python checks, so schema drift does not currently affect validation.
+Why it matters: The local ignored schema should match the provided Draft-07 artifact, and the code loads the schema file but still relies on hardcoded Python checks. Schema drift does not currently affect validation behavior.
 
 Subtasks:
 
-- Replace the local schema reference with the provided Draft-07 schema before submission.
+- Replace the local schema reference with the provided Draft-07 schema before final local packaging if it has drifted.
 - Decide how API-only `id` is handled: strip before schema validation or validate separately while preserving it as source metadata.
 - Decide whether to use JSON Schema validation directly, or explicitly document that Python validation is the authoritative implementation.
 - Add validation checks or documented assumptions for schema-level details not currently enforced, including two-decimal `amount` granularity, unexpected extra fields, and the assignment account/date ranges if treating those as constraints.
@@ -91,7 +91,7 @@ Subtasks:
 
 ## Priority 1: High-Value Engineering Improvements
 
-### 5. Add API source contract tests
+### 4. Add API source contract tests
 
 Why it matters: API support is a meaningful alignment point with Task 1, but the current tests do not verify pagination, headers, retry behavior, or CSV/API normalization parity.
 
@@ -103,7 +103,7 @@ Subtasks:
 - Test 401 behavior, 429 retry, 5xx retry, timeout retry, and failure after max retries.
 - Test CSV and API payloads normalize to the same downstream shape.
 
-### 6. Improve source and config validation
+### 5. Improve source and config validation
 
 Why it matters: Senior platform code should fail early with actionable messages for bad runtime settings.
 
@@ -114,7 +114,7 @@ Subtasks:
 - Consider setting `ALLOW_CSV_FALLBACK=false` by default in API mode so real API failures are not hidden during reviewer testing.
 - Parse CSV watermark filtering through timestamp normalization instead of string comparison.
 
-### 7. Add observability and run telemetry
+### 6. Add observability and run telemetry
 
 Why it matters: The role emphasizes reliability, monitoring, audit trails, and recovery.
 
@@ -126,7 +126,7 @@ Subtasks:
 - Add warning thresholds for unexpected quarantine or duplicate spikes.
 - Add `docs/runbook.md` with failure investigation queries.
 
-### 8. Improve idempotent upsert and audit metadata
+### 7. Improve idempotent upsert and audit metadata
 
 Why it matters: Delete-then-insert by `transaction_id` works locally, but merge-like semantics and first/last seen metadata are easier to defend as platform design.
 
@@ -137,7 +137,7 @@ Subtasks:
 - Preserve the first ingestion timestamp and update only reprocessing metadata.
 - Add tests proving reprocessing updates metadata without changing canonical counts.
 
-### 9. Decide quarantine history semantics
+### 8. Decide quarantine history semantics
 
 Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload and error set. That is idempotent, but it loses repeated-attempt history.
 
@@ -148,7 +148,7 @@ Subtasks:
 - If append-only, add `attempt_number`, `run_seen_count`, or separate attempt metadata.
 - Add tests for invalid records reprocessed through the lookback window.
 
-### 10. Make exported SQL and runtime SQL consistent
+### 9. Make exported SQL and runtime SQL consistent
 
 Why it matters: `sql/daily_account_summary.sql` uses `arg_max(merchant_category, amount)`, while `src/transform.py` ranks category totals. Reviewers may inspect the SQL file directly.
 
@@ -158,19 +158,9 @@ Subtasks:
 - Update `sql/ddl.sql` to include `bronze_transactions_duplicates` and `gold_daily_account_summary`.
 - Add a lightweight check that SQL reference files do not drift from runtime DDL/transform logic, or state which source is authoritative.
 
-### 11. Correct CI and verification documentation
-
-Why it matters: `CONTRIBUTING.md` says GitHub Actions runs the same local verification path, but the workflow currently runs lint and unit tests only. That mismatch can reduce reviewer trust in the automation story.
-
-Subtasks:
-
-- Update `CONTRIBUTING.md` to state exactly what CI runs today.
-- If assignment artifacts are committed or generated in CI, add a clean end-to-end job for `make clean`, `make run`, and `make run-incremental`.
-- Keep API-dependent checks out of default CI unless secrets are configured for a manual smoke workflow.
-
 ## Priority 2: Modeling and Documentation Polish
 
-### 12. Clarify `top_category` spend semantics
+### 10. Clarify `top_category` spend semantics
 
 Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts, including credits.
 
@@ -182,7 +172,7 @@ Subtasks:
 - Add tests for category ties and credit-only days.
 - Document the chosen interpretation.
 
-### 13. Add a currency handling caveat
+### 11. Add a currency handling caveat
 
 Why it matters: The daily summary sums amounts across currencies, which may be acceptable for the assignment but is not financially correct in production.
 
@@ -192,7 +182,7 @@ Subtasks:
 - Consider a `gold_daily_account_currency_summary` grouped by account, date, and currency.
 - Document the production requirement for FX rates and a reporting currency.
 
-### 14. Add a silver layer
+### 12. Add a silver layer
 
 Why it matters: The current implementation uses bronze and gold. A small silver layer would make raw, clean, duplicate-audit, quarantine, and curated responsibilities clearer.
 
@@ -203,7 +193,7 @@ Subtasks:
 - Build gold from silver.
 - Document bronze, quarantine, duplicate, silver, and gold responsibilities.
 
-### 15. Add richer profiling and sample outputs
+### 13. Add richer profiling and sample outputs
 
 Why it matters: Reviewers can quickly see that the data was understood, not just processed.
 
@@ -213,7 +203,7 @@ Subtasks:
 - Add compact README snippets from quarantine, duplicate, and daily summary outputs.
 - Keep all profile and sample counts generated, not hardcoded.
 
-### 16. Add architecture decision records
+### 14. Add architecture decision records
 
 Why it matters: Senior-level submissions benefit from explicit tradeoff reasoning.
 
@@ -226,7 +216,7 @@ Subtasks:
 
 ## Priority 3: Optional Stretch
 
-### 17. Add type checking and formatting targets
+### 15. Add type checking and formatting targets
 
 Subtasks:
 
@@ -234,14 +224,14 @@ Subtasks:
 - Add `mypy` or `pyright` only if the setup stays lightweight.
 - Add type-checking to CI after local adoption.
 
-### 18. Add governance and cost-control notes
+### 16. Add governance and cost-control notes
 
 Subtasks:
 
 - Expand `docs/production_notes.md` with Azure Key Vault, Unity Catalog grants, managed identities, PII/data classification assumptions, encryption, auto-termination, and budget alerts.
 - Add `docs/governance.md` if the production notes become too large.
 
-### 19. Add a local API smoke command
+### 17. Add a local API smoke command
 
 Subtasks:
 
@@ -252,6 +242,6 @@ Subtasks:
 
 ## Suggested Next Three Changes
 
-1. Decide whether required input/output artifacts are committed, attached, or regenerated by the reviewer.
-2. Demonstrate incremental ingestion with synthetic April records.
-3. Clarify the dbt stance by either making dbt executable or clearly removing it from the default path.
+1. Demonstrate incremental ingestion with synthetic April records.
+2. Clarify the dbt stance by either making dbt executable or clearly removing it from the default path.
+3. Align validation behavior with the provided Draft-07 schema or document Python validation as authoritative.

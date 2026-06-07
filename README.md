@@ -9,7 +9,7 @@
 
 Local-first implementation of the Senior Platform Data Engineer assignment. The project ingests transaction records from CSV by default, optionally supports a Supabase REST API source, validates records, quarantines invalid data, flags duplicate real-world transactions, stores data in DuckDB, builds a daily account summary, and persists an incremental ingestion watermark.
 
-The local project directory is intentionally self-contained. The assignment dataset and schema are expected at `data/transactions.csv` and `data/transactions_schema.json`; those files are kept out of Git because the submitted artifact is the local project directory, not the GitHub repository alone. The pipeline does not hardcode record counts, invalid IDs, duplicate IDs, or date ranges.
+The repository keeps the provided assignment dataset, schema, and generated outputs out of Git because they may be sensitive assessment artifacts. To run the full pipeline locally, place the provided files at `data/transactions.csv` and `data/transactions_schema.json`. The pipeline does not hardcode record counts, invalid IDs, duplicate IDs, or date ranges.
 
 ## Stack
 
@@ -76,6 +76,8 @@ Generated files are written under `outputs/`:
 - `watermark_run2.json`: incremental run state
 - `data_quality_assertions.json`: table-level assertion results for the curated layer
 - `run_summary.json`: pipeline summary
+
+Output artifacts are not tracked in Git and can be regenerated with `make clean && make run && make run-incremental`.
 
 Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, and 257 daily summary rows. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`.
 
