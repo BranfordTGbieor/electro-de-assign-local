@@ -59,10 +59,13 @@ data/transactions_schema.json
 make clean
 make run
 make run-incremental
+make demo-incremental-new-data
 make test
 ```
 
 `make run` performs a full load, builds the gold summary, then performs an incremental simulation so both `watermark_run1.json` and `watermark_run2.json` exist. `make run-incremental` can be executed again and should reprocess the lookback window without inserting duplicate canonical rows.
+
+`make demo-incremental-new-data` copies the local assignment CSV into `.local/incremental_new_data_demo/`, runs a full load against an isolated demo DuckDB database, appends three synthetic April 2024 records to the demo CSV, then runs incremental ingestion again. Demo table exports stay under `.local/incremental_new_data_demo/outputs`; the reviewer-facing proof files are written to `outputs/watermark_run3_new_data.json` and `outputs/incremental_new_data_demo.json`.
 
 ## Outputs
 
@@ -74,12 +77,14 @@ Generated files are written under `outputs/`:
 - `daily_account_summary.csv`: daily account-level curated aggregate
 - `watermark_run1.json`: first successful load state
 - `watermark_run2.json`: incremental run state
+- `watermark_run3_new_data.json`: incremental demo state after staging three April records
+- `incremental_new_data_demo.json`: proof summary for the April incremental demo
 - `data_quality_assertions.json`: table-level assertion results for the curated layer
 - `run_summary.json`: pipeline summary
 
 Output artifacts are not tracked in Git and can be regenerated with `make clean && make run && make run-incremental`.
 
-Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, and 257 daily summary rows. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`.
+Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, and 257 daily summary rows. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`. The April demo reprocesses that lookback window plus three staged April rows, inserts exactly 3 new valid records, and advances the watermark to `2024-04-03T15:45:00Z`.
 
 ## Data Quality
 

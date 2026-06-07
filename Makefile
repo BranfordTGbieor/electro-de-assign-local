@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: setup reset-venv clean ingest incremental transform run run-incremental lint test dbt-run dbt-test
+.PHONY: setup reset-venv clean ingest incremental transform run run-incremental demo-incremental-new-data lint test dbt-run dbt-test
 
 setup:
 	python3 -m venv --clear .venv
@@ -27,6 +27,9 @@ run:
 
 run-incremental:
 	$(PYTHON) -m src.run_pipeline --mode incremental
+
+demo-incremental-new-data:
+	$(PYTHON) -m src.demo_incremental_new_data
 
 lint:
 	$(PYTHON) -m ruff check src tests
