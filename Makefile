@@ -1,4 +1,5 @@
 PYTHON ?= .venv/bin/python
+DBT ?= .venv/bin/dbt
 
 .PHONY: setup reset-venv clean ingest incremental transform run run-incremental demo-incremental-new-data lint test dbt-run dbt-test
 
@@ -38,7 +39,7 @@ test:
 	$(PYTHON) -m pytest -q
 
 dbt-run:
-	cd dbt && dbt run
+	cd dbt && ../$(DBT) run --profiles-dir .
 
 dbt-test:
-	cd dbt && dbt test
+	cd dbt && ../$(DBT) test --profiles-dir .

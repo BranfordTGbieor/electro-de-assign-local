@@ -16,11 +16,11 @@ The repository keeps the provided assignment dataset, schema, and generated outp
 - Python 3.11+
 - DuckDB for durable local analytical storage
 - Python validation and ingestion orchestration
-- SQL-through-DuckDB for curated transformations
+- dbt Core with DuckDB for curated transformations
 - pytest for automated checks
 - Makefile for reviewer commands
 
-dbt project files are included as lightweight scaffolding, but the required local workflow does not depend on dbt.
+dbt Core is used for the curated transformation layer through the local DuckDB adapter. The repository also keeps Python-level SQL assertions after dbt runs so reviewers get both dbt tests and explicit output artifacts.
 
 ## Setup
 
@@ -67,6 +67,13 @@ make test
 
 `make demo-incremental-new-data` copies the local assignment CSV into `.local/incremental_new_data_demo/`, runs a full load against an isolated demo DuckDB database, appends three synthetic April 2024 records to the demo CSV, then runs incremental ingestion again. Demo table exports stay under `.local/incremental_new_data_demo/outputs`; the reviewer-facing proof files are written to `outputs/watermark_run3_new_data.json` and `outputs/incremental_new_data_demo.json`.
 
+The dbt project can also be run directly after ingestion:
+
+```bash
+make dbt-run
+make dbt-test
+```
+
 ## Outputs
 
 Generated files are written under `outputs/`:
@@ -100,7 +107,7 @@ Watermark state is stored in `control_ingestion_watermarks`. The first run has n
 
 ## Daily Summary Rules
 
-`gold_daily_account_summary` includes only valid, non-duplicate, completed transactions. It groups by `account_id` and UTC calendar date, then computes debit total, credit total, net amount, transaction count, distinct merchants, top category, sorted currencies, and `updated_at`.
+`gold_daily_account_summary` is built by dbt from valid bronze records. It includes only valid, non-duplicate, completed transactions, groups by `account_id` and UTC calendar date, then computes debit total, credit total, net amount, transaction count, distinct merchants, top category, sorted currencies, and `updated_at`.
 
 ## Tests
 
@@ -109,7 +116,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, and table-level gold assertions.
+Coverage includes validation edge cases, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 

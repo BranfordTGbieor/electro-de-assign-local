@@ -13,3 +13,28 @@ models:
       - name: transaction_date
         tests:
           - not_null
+      - name: currency
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"]
+      - name: transaction_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["debit", "credit"]
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["completed", "pending", "failed", "reversed"]
+      - name: is_duplicate
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
