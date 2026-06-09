@@ -112,6 +112,8 @@ Watermark state is stored in `control_ingestion_watermarks`. The first run has n
 
 `gold_daily_account_summary` is built by dbt from valid bronze records. It includes only valid, non-duplicate, completed transactions, groups by `account_id` and UTC calendar date, then computes debit total, credit total, net amount, transaction count, distinct merchants, top category, sorted currencies, and `updated_at`. `top_category` is the merchant category with the highest completed debit spend for the account/date; ties are resolved alphabetically by category, and credit-only days have no top spend category. The dbt model is the authoritative transformation; SQL files under `sql/` are reviewer-readable references kept aligned with the dbt logic.
 
+No FX conversion is performed in the local assignment model. If an account/date contains multiple currencies, the summary preserves the sorted `currencies` list so the limitation is visible, but debit, credit, and net totals are still simple source-amount sums. In production, this would require either grouping by currency or converting through approved FX rates into a reporting currency before financial totals are consumed.
+
 ## Tests
 
 ```bash

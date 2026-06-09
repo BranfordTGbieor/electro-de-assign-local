@@ -32,3 +32,5 @@ Duplicates are identified by comparing all natural-key fields except `transactio
 After each transform, the pipeline writes `outputs/data_quality_assertions.json`. These assertions verify required gold fields, uniqueness of `(account_id, transaction_date)`, positive transaction counts, `net_amount = total_credit_amount - total_debit_amount`, and exact parity between `gold_daily_account_summary` and the expected aggregation over completed, non-duplicate bronze records.
 
 `top_category` is based on completed debit spend only. Credits contribute to credit totals, net amount, transaction count, and distinct merchant count, but they do not define spend category. If an account/date has only completed credits, `top_category` is null.
+
+The assignment dataset contains 17 account/date groups with more than one currency. The local model exposes this through the `currencies` column but does not perform FX conversion; debit, credit, and net amounts are source-amount sums. A production model should either group financial summaries by currency or convert transactions into an approved reporting currency using governed FX rates.

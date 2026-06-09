@@ -4,17 +4,7 @@ This backlog keeps only remaining work that is likely to improve the assessment 
 
 ## Priority 1: Submission Polish
 
-### 1. Add a currency handling caveat
-
-Why it matters: The current daily summary can aggregate records with different currencies on the same account/date. That may be acceptable for the assignment dataset, but production financial reporting would require FX conversion or grouping by currency.
-
-Subtasks:
-
-- Add a README note that no FX conversion is performed.
-- Document the production requirement for FX rates and a reporting currency.
-- Decide whether a separate `gold_daily_account_currency_summary` is worth adding; defer unless the dataset clearly needs it.
-
-### 2. Add short architecture decision records
+### 1. Add short architecture decision records
 
 Why it matters: Senior-level submissions benefit from concise tradeoff reasoning, especially where the local implementation deliberately differs from production.
 
@@ -27,7 +17,7 @@ Subtasks:
 
 ## Priority 2: Optional If Time Remains
 
-### 3. Add richer profiling and sample outputs
+### 2. Add richer profiling and sample outputs
 
 Why it matters: A generated profile can help reviewers quickly see that the data was understood, not just processed.
 
@@ -37,7 +27,7 @@ Subtasks:
 - Add compact README snippets from generated profile outputs.
 - Keep counts generated, not hardcoded.
 
-### 4. Add lightweight formatting and type-check targets
+### 3. Add lightweight formatting and type-check targets
 
 Subtasks:
 
@@ -45,7 +35,7 @@ Subtasks:
 - Add `mypy` or `pyright` only if setup remains lightweight.
 - Add type-checking to CI only after it is clean locally.
 
-### 5. Add a local API smoke command
+### 4. Add a local API smoke command
 
 Subtasks:
 
@@ -63,6 +53,6 @@ Subtasks:
 
 ## Suggested Next Three Changes
 
-1. Add the currency handling caveat.
-2. Add short architecture decision records.
-3. Add richer profiling and sample outputs.
+1. Add short architecture decision records.
+2. Add richer profiling and sample outputs.
+3. Add lightweight formatting and type-check targets.
