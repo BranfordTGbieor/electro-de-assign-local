@@ -5,7 +5,9 @@ import json
 import logging
 
 from src.config import load_settings
+from src.data_profile import export_data_profile
 from src.ingest import run_ingestion
+from src.storage import connect
 from src.telemetry import build_pipeline_metrics, log_event, timed_step, write_metrics
 from src.transform import run_transform
 
@@ -48,7 +50,18 @@ def run_pipeline(mode: str = "full") -> dict[str, object]:
     )
     metrics = build_pipeline_metrics(summary)
     write_metrics(metrics, settings.output_dir / "metrics.json")
-    log_event(LOGGER, "pipeline_completed", mode=mode, metrics_output=str(settings.output_dir / "metrics.json"))
+    conn = connect(settings.duckdb_path)
+    try:
+        export_data_profile(conn, settings.output_dir / "data_profile.json")
+    finally:
+        conn.close()
+    log_event(
+        LOGGER,
+        "pipeline_completed",
+        mode=mode,
+        metrics_output=str(settings.output_dir / "metrics.json"),
+        profile_output=str(settings.output_dir / "data_profile.json"),
+    )
     return summary
 
 

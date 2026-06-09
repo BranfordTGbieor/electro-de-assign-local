@@ -1,7 +1,7 @@
 PYTHON ?= .venv/bin/python
 DBT ?= .venv/bin/dbt
 
-.PHONY: setup reset-venv clean ingest incremental transform run run-incremental demo-incremental-new-data lint test dbt-run dbt-test
+.PHONY: setup reset-venv clean ingest incremental transform run run-incremental demo-incremental-new-data profile api-smoke format lint test dbt-run dbt-test
 
 setup:
 	python3 -m venv --clear .venv
@@ -31,6 +31,16 @@ run-incremental:
 
 demo-incremental-new-data:
 	$(PYTHON) -m src.demo_incremental_new_data
+
+profile:
+	$(PYTHON) -m src.data_profile
+
+api-smoke:
+	$(PYTHON) -m src.api_smoke
+
+format:
+	$(PYTHON) -m ruff check --fix src tests
+	$(PYTHON) -m ruff format src tests
 
 lint:
 	$(PYTHON) -m ruff check src tests

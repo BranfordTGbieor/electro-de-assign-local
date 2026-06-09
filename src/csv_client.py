@@ -31,7 +31,4 @@ def _is_on_or_after_watermark(record: dict[str, Any], normalized_watermark: str)
 
 
 def normalize_field_names(record: dict[str, Any]) -> dict[str, Any]:
-    return {
-        key.strip().lower(): value.strip() if isinstance(value, str) else value
-        for key, value in record.items()
-    }
+    return {key.strip().lower(): value.strip() if isinstance(value, str) else value for key, value in record.items()}

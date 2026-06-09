@@ -74,14 +74,17 @@ def test_summary_excludes_non_completed_and_duplicates(tmp_path, monkeypatch) ->
     ).fetchone()
 
     assert row == (Decimal("10.00"), Decimal("5.00"), Decimal("-5.00"), 2, "groceries")
-    assert conn.execute(
-        """
+    assert (
+        conn.execute(
+            """
         SELECT COUNT(*)
         FROM gold_daily_account_summary
         GROUP BY account_id, transaction_date
         HAVING COUNT(*) > 1
         """
-    ).fetchall() == []
+        ).fetchall()
+        == []
+    )
     conn.close()
 
 

@@ -46,6 +46,11 @@ class TransactionsApiClient:
             offset += self.page_limit
         return records
 
+    def fetch_page(self, offset: int = 0, watermark: str | None = None) -> list[dict[str, Any]]:
+        if not self.api_key:
+            raise ApiAuthError("TRANSACTIONS_API_KEY is required when TRANSACTIONS_SOURCE=api")
+        return self._fetch_page(offset=offset, watermark=watermark)
+
     def _fetch_page(self, offset: int, watermark: str | None) -> list[dict[str, Any]]:
         params: dict[str, str | int] = {
             "limit": self.page_limit,

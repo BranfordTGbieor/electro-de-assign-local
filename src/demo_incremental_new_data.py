@@ -183,9 +183,7 @@ def build_proof(
     conn.close()
 
     passed = (
-        inserted == expected_inserted
-        and persisted_new_records == expected_inserted
-        and watermark == expected_watermark
+        inserted == expected_inserted and persisted_new_records == expected_inserted and watermark == expected_watermark
     )
     if not passed:
         raise AssertionError(

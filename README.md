@@ -60,6 +60,7 @@ make clean
 make run
 make run-incremental
 make demo-incremental-new-data
+make profile
 make test
 ```
 
@@ -74,6 +75,14 @@ make dbt-run
 make dbt-test
 ```
 
+API connectivity can be smoke-tested without running the full pipeline:
+
+```bash
+TRANSACTIONS_SOURCE=api TRANSACTIONS_API_KEY=your-token make api-smoke
+```
+
+The smoke command fetches one small page, validates it against the local schema contract, and prints a compact JSON summary. It is intentionally separate from CI because it depends on live credentials.
+
 ## Outputs
 
 Generated files are written under `outputs/`:
@@ -87,12 +96,13 @@ Generated files are written under `outputs/`:
 - `watermark_run3_new_data.json`: incremental demo state after staging three April records
 - `incremental_new_data_demo.json`: proof summary for the April incremental demo
 - `data_quality_assertions.json`: table-level assertion results for the curated layer
+- `data_profile.json`: generated profile with date range, account count, core distributions, invalid-rule counts, duplicate group count, and multi-currency account/date count
 - `metrics.json`: operational metrics with rates, row counts, durations, watermark freshness, and warnings
 - `run_summary.json`: pipeline summary
 
 Output artifacts are not tracked in Git and can be regenerated with `make clean && make run && make run-incremental`.
 
-Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, and 257 daily summary rows. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`. The April demo reprocesses that lookback window plus three staged April rows, inserts exactly 3 new valid records, and advances the watermark to `2024-04-03T15:45:00Z`.
+Observed results after `make run` with the assignment dataset: 352 source rows, 349 valid rows, 3 quarantined rows, 5 duplicate rows, 344 canonical valid rows, 257 daily summary rows, 20 distinct accounts, and a valid transaction date range from `2024-01-01T21:38:24Z` to `2024-03-30T22:35:29Z`. The built-in incremental simulation reprocesses 9 records from the two-day lookback window, inserts 0 new valid rows, and keeps the watermark at `2024-03-30T22:35:29Z`. The April demo reprocesses that lookback window plus three staged April rows, inserts exactly 3 new valid records, and advances the watermark to `2024-04-03T15:45:00Z`.
 
 ## Data Quality
 
@@ -122,6 +132,8 @@ make test
 ```
 
 Coverage includes validation edge cases, configuration guardrails, telemetry metrics, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules including top-category spend semantics, dbt model tests, and table-level gold assertions.
+
+Architecture tradeoffs are captured as short ADRs under `docs/adr/`.
 
 ## CI and Commit Discipline
 
