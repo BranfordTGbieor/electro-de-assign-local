@@ -35,6 +35,7 @@ category_totals AS (
             ORDER BY SUM(amount) DESC, merchant_category ASC
         ) AS category_rank
     FROM completed
+    WHERE transaction_type = 'debit'
     GROUP BY account_id, transaction_date, merchant_category
 )
 SELECT
@@ -49,7 +50,7 @@ SELECT
     daily.currencies,
     current_timestamp AS updated_at
 FROM daily
-JOIN category_totals
+LEFT JOIN category_totals
   ON daily.account_id = category_totals.account_id
  AND daily.transaction_date = category_totals.transaction_date
  AND category_totals.category_rank = 1

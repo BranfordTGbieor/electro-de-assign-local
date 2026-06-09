@@ -1,89 +1,22 @@
 # TODO: Assessment Audit Backlog
 
-This backlog reflects the current audit of the Senior Platform Data Engineer assignment submission. Existing outputs indicate the pipeline has run end to end before, but the items below would make the repository safer to submit, easier to verify from a clean checkout, and easier to defend in review.
+This backlog keeps only remaining work that is likely to improve the assessment submission. Broader production-platform ideas are documented in `docs/production_notes.md` instead of being treated as local implementation requirements.
 
-## Priority 1: High-Value Engineering Improvements
+## Priority 1: Submission Polish
 
-### 1. Improve idempotent upsert and audit metadata
+### 1. Add a currency handling caveat
 
-Why it matters: Delete-then-insert by `transaction_id` works locally, but merge-like semantics and first/last seen metadata are easier to defend as platform design.
-
-Subtasks:
-
-- Use DuckDB `MERGE INTO` if the installed DuckDB version supports it reliably.
-- Track `first_seen_batch_id`, `last_seen_batch_id`, `created_at`, and `updated_at`.
-- Preserve the first ingestion timestamp and update only reprocessing metadata.
-- Add tests proving reprocessing updates metadata without changing canonical counts.
-
-### 2. Decide quarantine history semantics
-
-Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload and error set. That is idempotent, but it loses repeated-attempt history.
-
-Subtasks:
-
-- Decide between unique invalid payloads and append-only quarantine history.
-- If unique, document why repeated invalid records do not create duplicate quarantine rows.
-- If append-only, add `attempt_number`, `run_seen_count`, or separate attempt metadata.
-- Add tests for invalid records reprocessed through the lookback window.
-
-### 3. Make exported SQL and runtime SQL consistent
-
-Why it matters: `sql/daily_account_summary.sql` uses `arg_max(merchant_category, amount)`, while `src/transform.py` ranks category totals. Reviewers may inspect the SQL file directly.
-
-Subtasks:
-
-- Update `sql/daily_account_summary.sql` to match `src/transform.py`.
-- Update `sql/ddl.sql` to include `bronze_transactions_duplicates` and `gold_daily_account_summary`.
-- Add a lightweight check that SQL reference files do not drift from runtime DDL/transform logic, or state which source is authoritative.
-
-## Priority 2: Modeling and Documentation Polish
-
-### 4. Clarify `top_category` spend semantics
-
-Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts, including credits.
-
-Subtasks:
-
-- Decide whether spend means debit-only or all completed transaction amounts.
-- If debit-only, rank categories by completed debit amount.
-- Define deterministic tie-breaking by category name.
-- Add tests for category ties and credit-only days.
-- Document the chosen interpretation.
-
-### 5. Add a currency handling caveat
-
-Why it matters: The daily summary sums amounts across currencies, which may be acceptable for the assignment but is not financially correct in production.
+Why it matters: The current daily summary can aggregate records with different currencies on the same account/date. That may be acceptable for the assignment dataset, but production financial reporting would require FX conversion or grouping by currency.
 
 Subtasks:
 
 - Add a README note that no FX conversion is performed.
-- Consider a `gold_daily_account_currency_summary` grouped by account, date, and currency.
 - Document the production requirement for FX rates and a reporting currency.
+- Decide whether a separate `gold_daily_account_currency_summary` is worth adding; defer unless the dataset clearly needs it.
 
-### 6. Add a silver layer
+### 2. Add short architecture decision records
 
-Why it matters: The current implementation uses bronze and gold. A small silver layer would make raw, clean, duplicate-audit, quarantine, and curated responsibilities clearer.
-
-Subtasks:
-
-- Add `silver_transactions_clean` containing valid, non-duplicate rows with canonical typed columns.
-- Keep `bronze_transactions_valid` as audit-oriented valid raw storage.
-- Build gold from silver.
-- Document bronze, quarantine, duplicate, silver, and gold responsibilities.
-
-### 7. Add richer profiling and sample outputs
-
-Why it matters: Reviewers can quickly see that the data was understood, not just processed.
-
-Subtasks:
-
-- Export `outputs/data_profile.json` with date range, account count, status distribution, currency distribution, type distribution, invalid count by rule, and duplicate group count.
-- Add compact README snippets from quarantine, duplicate, and daily summary outputs.
-- Keep all profile and sample counts generated, not hardcoded.
-
-### 8. Add architecture decision records
-
-Why it matters: Senior-level submissions benefit from explicit tradeoff reasoning.
+Why it matters: Senior-level submissions benefit from concise tradeoff reasoning, especially where the local implementation deliberately differs from production.
 
 Subtasks:
 
@@ -92,17 +25,27 @@ Subtasks:
 - Create `docs/adr/0003-use-watermark-lookback-window.md`.
 - Keep each ADR short: context, decision, consequences.
 
-## Priority 3: Optional Stretch
+## Priority 2: Optional If Time Remains
 
-### 9. Add type checking and formatting targets
+### 3. Add richer profiling and sample outputs
+
+Why it matters: A generated profile can help reviewers quickly see that the data was understood, not just processed.
+
+Subtasks:
+
+- Export `outputs/data_profile.json` with date range, account count, status distribution, currency distribution, type distribution, invalid count by rule, and duplicate group count.
+- Add compact README snippets from generated profile outputs.
+- Keep counts generated, not hardcoded.
+
+### 4. Add lightweight formatting and type-check targets
 
 Subtasks:
 
 - Add `make format` using Ruff formatting.
-- Add `mypy` or `pyright` only if the setup stays lightweight.
-- Add type-checking to CI after local adoption.
+- Add `mypy` or `pyright` only if setup remains lightweight.
+- Add type-checking to CI only after it is clean locally.
 
-### 10. Add a local API smoke command
+### 5. Add a local API smoke command
 
 Subtasks:
 
@@ -111,20 +54,15 @@ Subtasks:
 - Validate timestamp normalization and schema shape.
 - Keep API smoke tests out of the default test suite.
 
-### 11. Add a static local reporting dashboard
+## Deliberately Deferred
 
-Why it matters: A small dashboard can make generated outputs easier to inspect, but it should not distract from the platform-engineering scope or introduce a frontend build burden.
-
-Subtasks:
-
-- Prefer a static generated HTML report over a full React/Next.js app unless there is spare time after higher-priority platform work.
-- Read generated `outputs/*.csv` and `outputs/*.json` locally; do not add a backend service or commit assessment data.
-- Show run counts, quarantine reasons, duplicate groups, daily summary trends, and watermark state.
-- Add `make report` to regenerate the dashboard after `make run`.
-- Document the dashboard as optional reviewer convenience, not part of core pipeline correctness.
+- Local `MERGE`/first-seen audit metadata: the current idempotent delete-then-insert upsert is deterministic and covered by tests. Production `MERGE`, first-seen, and last-seen metadata are documented in `docs/production_notes.md`.
+- Append-only quarantine history: local idempotent quarantine keeps reviewer runs stable. Production append-only quarantine attempts are documented in `docs/production_notes.md`.
+- Silver layer: useful in a larger lakehouse, but dbt staging plus bronze/gold is enough for this local assignment.
+- Static dashboard: not needed for a data platform assessment unless all higher-value data engineering polish is complete.
 
 ## Suggested Next Three Changes
 
-1. Improve idempotent upsert and audit metadata.
-2. Decide quarantine history semantics.
-3. Make exported SQL and runtime SQL consistent.
+1. Add the currency handling caveat.
+2. Add short architecture decision records.
+3. Add richer profiling and sample outputs.

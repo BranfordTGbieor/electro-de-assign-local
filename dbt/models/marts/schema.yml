@@ -34,8 +34,6 @@ models:
         tests:
           - not_null
       - name: top_category
-        tests:
-          - not_null
       - name: currencies
         tests:
           - not_null

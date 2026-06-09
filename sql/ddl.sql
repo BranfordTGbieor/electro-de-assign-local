@@ -29,6 +29,25 @@ CREATE TABLE IF NOT EXISTS bronze_transactions_quarantine (
     source VARCHAR NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS bronze_transactions_duplicates (
+    transaction_id VARCHAR PRIMARY KEY,
+    account_id VARCHAR NOT NULL,
+    transaction_date TIMESTAMP NOT NULL,
+    amount DECIMAL(18, 2) NOT NULL,
+    currency VARCHAR NOT NULL,
+    transaction_type VARCHAR NOT NULL,
+    merchant_name VARCHAR NOT NULL,
+    merchant_category VARCHAR NOT NULL,
+    status VARCHAR NOT NULL,
+    country_code VARCHAR NOT NULL,
+    source VARCHAR NOT NULL,
+    batch_id VARCHAR NOT NULL,
+    ingestion_timestamp TIMESTAMP NOT NULL,
+    natural_key_hash VARCHAR NOT NULL,
+    duplicate_group_id VARCHAR NOT NULL,
+    duplicate_rank INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS control_ingestion_watermarks (
     pipeline_name VARCHAR NOT NULL,
     source VARCHAR NOT NULL,
@@ -42,4 +61,18 @@ CREATE TABLE IF NOT EXISTS control_ingestion_watermarks (
     records_duplicated INTEGER NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     PRIMARY KEY (pipeline_name, source)
+);
+
+CREATE TABLE IF NOT EXISTS gold_daily_account_summary (
+    account_id VARCHAR NOT NULL,
+    transaction_date DATE NOT NULL,
+    total_debit_amount DECIMAL(18, 2) NOT NULL,
+    total_credit_amount DECIMAL(18, 2) NOT NULL,
+    net_amount DECIMAL(18, 2) NOT NULL,
+    transaction_count INTEGER NOT NULL,
+    distinct_merchants INTEGER NOT NULL,
+    top_category VARCHAR,
+    currencies VARCHAR NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (account_id, transaction_date)
 );

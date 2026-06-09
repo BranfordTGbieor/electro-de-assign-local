@@ -108,7 +108,7 @@ def initialize(conn: duckdb.DuckDBPyConnection) -> None:
             net_amount DECIMAL(18, 2) NOT NULL,
             transaction_count INTEGER NOT NULL,
             distinct_merchants INTEGER NOT NULL,
-            top_category VARCHAR NOT NULL,
+            top_category VARCHAR,
             currencies VARCHAR NOT NULL,
             updated_at TIMESTAMP NOT NULL,
             PRIMARY KEY (account_id, transaction_date)

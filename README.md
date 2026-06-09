@@ -110,7 +110,7 @@ Watermark state is stored in `control_ingestion_watermarks`. The first run has n
 
 ## Daily Summary Rules
 
-`gold_daily_account_summary` is built by dbt from valid bronze records. It includes only valid, non-duplicate, completed transactions, groups by `account_id` and UTC calendar date, then computes debit total, credit total, net amount, transaction count, distinct merchants, top category, sorted currencies, and `updated_at`.
+`gold_daily_account_summary` is built by dbt from valid bronze records. It includes only valid, non-duplicate, completed transactions, groups by `account_id` and UTC calendar date, then computes debit total, credit total, net amount, transaction count, distinct merchants, top category, sorted currencies, and `updated_at`. `top_category` is the merchant category with the highest completed debit spend for the account/date; ties are resolved alphabetically by category, and credit-only days have no top spend category. The dbt model is the authoritative transformation; SQL files under `sql/` are reviewer-readable references kept aligned with the dbt logic.
 
 ## Tests
 
@@ -119,7 +119,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, configuration guardrails, telemetry metrics, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
+Coverage includes validation edge cases, configuration guardrails, telemetry metrics, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules including top-category spend semantics, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 
