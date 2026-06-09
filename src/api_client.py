@@ -6,6 +6,8 @@ from typing import Any
 
 import requests
 
+from src.telemetry import log_event
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -78,7 +80,16 @@ class TransactionsApiClient:
             if response.status_code in {429} or 500 <= response.status_code < 600:
                 if attempt == self.max_retries:
                     response.raise_for_status()
-                LOGGER.warning("Retrying API page after HTTP %s", response.status_code)
+                log_event(
+                    LOGGER,
+                    "api_retry",
+                    level=logging.WARNING,
+                    status_code=response.status_code,
+                    attempt=attempt + 1,
+                    max_retries=self.max_retries,
+                    offset=offset,
+                    watermark=watermark,
+                )
                 self._sleep(attempt)
                 continue
 

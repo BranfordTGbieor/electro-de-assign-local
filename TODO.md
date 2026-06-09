@@ -4,19 +4,7 @@ This backlog reflects the current audit of the Senior Platform Data Engineer ass
 
 ## Priority 1: High-Value Engineering Improvements
 
-### 1. Add observability and run telemetry
-
-Why it matters: The role emphasizes reliability, monitoring, audit trails, and recovery.
-
-Subtasks:
-
-- Emit structured JSON logs for ingestion, validation, transform, and API retries.
-- Add per-step durations to `outputs/run_summary.json`.
-- Export `outputs/metrics.json` with counts, duplicate rate, quarantine rate, watermark freshness, and summary row count.
-- Add warning thresholds for unexpected quarantine or duplicate spikes.
-- Add `docs/runbook.md` with failure investigation queries.
-
-### 2. Improve idempotent upsert and audit metadata
+### 1. Improve idempotent upsert and audit metadata
 
 Why it matters: Delete-then-insert by `transaction_id` works locally, but merge-like semantics and first/last seen metadata are easier to defend as platform design.
 
@@ -27,7 +15,7 @@ Subtasks:
 - Preserve the first ingestion timestamp and update only reprocessing metadata.
 - Add tests proving reprocessing updates metadata without changing canonical counts.
 
-### 3. Decide quarantine history semantics
+### 2. Decide quarantine history semantics
 
 Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload and error set. That is idempotent, but it loses repeated-attempt history.
 
@@ -38,7 +26,7 @@ Subtasks:
 - If append-only, add `attempt_number`, `run_seen_count`, or separate attempt metadata.
 - Add tests for invalid records reprocessed through the lookback window.
 
-### 4. Make exported SQL and runtime SQL consistent
+### 3. Make exported SQL and runtime SQL consistent
 
 Why it matters: `sql/daily_account_summary.sql` uses `arg_max(merchant_category, amount)`, while `src/transform.py` ranks category totals. Reviewers may inspect the SQL file directly.
 
@@ -50,7 +38,7 @@ Subtasks:
 
 ## Priority 2: Modeling and Documentation Polish
 
-### 5. Clarify `top_category` spend semantics
+### 4. Clarify `top_category` spend semantics
 
 Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts, including credits.
 
@@ -62,7 +50,7 @@ Subtasks:
 - Add tests for category ties and credit-only days.
 - Document the chosen interpretation.
 
-### 6. Add a currency handling caveat
+### 5. Add a currency handling caveat
 
 Why it matters: The daily summary sums amounts across currencies, which may be acceptable for the assignment but is not financially correct in production.
 
@@ -72,7 +60,7 @@ Subtasks:
 - Consider a `gold_daily_account_currency_summary` grouped by account, date, and currency.
 - Document the production requirement for FX rates and a reporting currency.
 
-### 7. Add a silver layer
+### 6. Add a silver layer
 
 Why it matters: The current implementation uses bronze and gold. A small silver layer would make raw, clean, duplicate-audit, quarantine, and curated responsibilities clearer.
 
@@ -83,7 +71,7 @@ Subtasks:
 - Build gold from silver.
 - Document bronze, quarantine, duplicate, silver, and gold responsibilities.
 
-### 8. Add richer profiling and sample outputs
+### 7. Add richer profiling and sample outputs
 
 Why it matters: Reviewers can quickly see that the data was understood, not just processed.
 
@@ -93,7 +81,7 @@ Subtasks:
 - Add compact README snippets from quarantine, duplicate, and daily summary outputs.
 - Keep all profile and sample counts generated, not hardcoded.
 
-### 9. Add architecture decision records
+### 8. Add architecture decision records
 
 Why it matters: Senior-level submissions benefit from explicit tradeoff reasoning.
 
@@ -106,7 +94,7 @@ Subtasks:
 
 ## Priority 3: Optional Stretch
 
-### 10. Add type checking and formatting targets
+### 9. Add type checking and formatting targets
 
 Subtasks:
 
@@ -114,7 +102,7 @@ Subtasks:
 - Add `mypy` or `pyright` only if the setup stays lightweight.
 - Add type-checking to CI after local adoption.
 
-### 11. Add a local API smoke command
+### 10. Add a local API smoke command
 
 Subtasks:
 
@@ -123,7 +111,7 @@ Subtasks:
 - Validate timestamp normalization and schema shape.
 - Keep API smoke tests out of the default test suite.
 
-### 12. Add a static local reporting dashboard
+### 11. Add a static local reporting dashboard
 
 Why it matters: A small dashboard can make generated outputs easier to inspect, but it should not distract from the platform-engineering scope or introduce a frontend build burden.
 
@@ -137,6 +125,6 @@ Subtasks:
 
 ## Suggested Next Three Changes
 
-1. Add observability and run telemetry.
-2. Improve idempotent upsert and audit metadata.
-3. Decide quarantine history semantics.
+1. Improve idempotent upsert and audit metadata.
+2. Decide quarantine history semantics.
+3. Make exported SQL and runtime SQL consistent.

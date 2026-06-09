@@ -87,6 +87,7 @@ Generated files are written under `outputs/`:
 - `watermark_run3_new_data.json`: incremental demo state after staging three April records
 - `incremental_new_data_demo.json`: proof summary for the April incremental demo
 - `data_quality_assertions.json`: table-level assertion results for the curated layer
+- `metrics.json`: operational metrics with rates, row counts, durations, watermark freshness, and warnings
 - `run_summary.json`: pipeline summary
 
 Output artifacts are not tracked in Git and can be regenerated with `make clean && make run && make run-incremental`.
@@ -118,7 +119,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, configuration guardrails, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
+Coverage includes validation edge cases, configuration guardrails, telemetry metrics, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 

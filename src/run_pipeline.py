@@ -6,34 +6,49 @@ import logging
 
 from src.config import load_settings
 from src.ingest import run_ingestion
+from src.telemetry import build_pipeline_metrics, log_event, timed_step, write_metrics
 from src.transform import run_transform
+
+LOGGER = logging.getLogger(__name__)
 
 
 def run_pipeline(mode: str = "full") -> dict[str, object]:
     settings = load_settings()
     settings.output_dir.mkdir(parents=True, exist_ok=True)
+    durations: dict[str, float] = {}
+    log_event(LOGGER, "pipeline_started", mode=mode, source=settings.source)
 
     if mode == "full":
-        run1 = run_ingestion(mode="full", watermark_output=settings.output_dir / "watermark_run1.json")
-        transform1 = run_transform()
-        run2 = run_ingestion(mode="incremental", watermark_output=settings.output_dir / "watermark_run2.json")
-        transform2 = run_transform()
+        with timed_step(durations, "full_ingestion"):
+            run1 = run_ingestion(mode="full", watermark_output=settings.output_dir / "watermark_run1.json")
+        with timed_step(durations, "initial_transform"):
+            transform1 = run_transform()
+        with timed_step(durations, "incremental_simulation"):
+            run2 = run_ingestion(mode="incremental", watermark_output=settings.output_dir / "watermark_run2.json")
+        with timed_step(durations, "final_transform"):
+            transform2 = run_transform()
         summary = {
             "mode": mode,
             "full_ingestion": run1,
             "incremental_simulation": run2,
             "initial_transform": transform1,
             "final_transform": transform2,
+            "durations_seconds": durations,
         }
     else:
-        run = run_ingestion(mode="incremental", watermark_output=settings.output_dir / "watermark_run2.json")
-        transform = run_transform()
-        summary = {"mode": mode, "incremental_ingestion": run, "transform": transform}
+        with timed_step(durations, "incremental_ingestion"):
+            run = run_ingestion(mode="incremental", watermark_output=settings.output_dir / "watermark_run2.json")
+        with timed_step(durations, "transform"):
+            transform = run_transform()
+        summary = {"mode": mode, "incremental_ingestion": run, "transform": transform, "durations_seconds": durations}
 
     (settings.output_dir / "run_summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True, default=str),
         encoding="utf-8",
     )
+    metrics = build_pipeline_metrics(summary)
+    write_metrics(metrics, settings.output_dir / "metrics.json")
+    log_event(LOGGER, "pipeline_completed", mode=mode, metrics_output=str(settings.output_dir / "metrics.json"))
     return summary
 
 
