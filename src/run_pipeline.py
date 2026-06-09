@@ -1,3 +1,5 @@
+"""End-to-end local pipeline runner for ingestion, transformation, metrics, and profiling."""
+
 from __future__ import annotations
 
 import argparse

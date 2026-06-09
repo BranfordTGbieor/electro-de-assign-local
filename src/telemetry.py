@@ -1,3 +1,5 @@
+"""Structured logging, timing, and derived pipeline metrics."""
+
 from __future__ import annotations
 
 import json

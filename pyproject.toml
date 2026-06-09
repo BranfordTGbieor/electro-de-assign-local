@@ -1,3 +1,4 @@
 [tool.ruff]
 line-length = 120
+# Target the minimum supported runtime. CI validates Python 3.11; local development may use newer Python 3.x.
 target-version = "py311"

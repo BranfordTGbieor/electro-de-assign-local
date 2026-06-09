@@ -1,10 +1,11 @@
+PYTHON_BOOTSTRAP ?= python3
 PYTHON ?= .venv/bin/python
 DBT ?= .venv/bin/dbt
 
 .PHONY: setup reset-venv clean ingest incremental transform run run-incremental demo-incremental-new-data profile api-smoke format lint test dbt-run dbt-test
 
 setup:
-	python3 -m venv --clear .venv
+	$(PYTHON_BOOTSTRAP) -m venv --clear .venv
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
 

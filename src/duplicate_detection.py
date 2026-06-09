@@ -1,3 +1,5 @@
+"""Natural-key duplicate detection for valid transaction records."""
+
 from __future__ import annotations
 
 import hashlib

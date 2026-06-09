@@ -1,3 +1,5 @@
+"""CSV source adapter with watermark filtering that mirrors API incremental reads."""
+
 from __future__ import annotations
 
 import csv

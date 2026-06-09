@@ -2,6 +2,7 @@ version: 2
 
 models:
   - name: daily_account_summary
+    description: Account/date aggregate built from completed, non-duplicate transactions.
     tests:
       - unique_combination_of_columns:
           arguments:
@@ -10,33 +11,43 @@ models:
               - transaction_date
     columns:
       - name: account_id
+        description: Account identifier for the summary row.
         tests:
           - not_null
       - name: transaction_date
+        description: UTC calendar date of the summarized transactions.
         tests:
           - not_null
       - name: total_debit_amount
+        description: Sum of completed debit amounts for the account/date in source currencies.
         tests:
           - not_null
       - name: total_credit_amount
+        description: Sum of completed credit amounts for the account/date in source currencies.
         tests:
           - not_null
       - name: net_amount
+        description: Credit total minus debit total. No FX conversion is applied locally.
         tests:
           - not_null
       - name: transaction_count
+        description: Count of completed, non-duplicate transactions included in the account/date row.
         tests:
           - not_null
           - expression_is_true:
               arguments:
                 expression: ">= 1"
       - name: distinct_merchants
+        description: Number of distinct merchants represented in the account/date row.
         tests:
           - not_null
       - name: top_category
+        description: Merchant category with the highest completed debit spend; null for credit-only days.
       - name: currencies
+        description: Sorted comma-separated list of source currencies present in the account/date row.
         tests:
           - not_null
       - name: updated_at
+        description: Timestamp when dbt rebuilt the summary table.
         tests:
           - not_null

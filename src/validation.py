@@ -1,3 +1,5 @@
+"""Transaction validation and source-normalization rules."""
+
 from __future__ import annotations
 
 import re

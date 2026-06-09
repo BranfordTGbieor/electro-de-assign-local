@@ -2,36 +2,52 @@ version: 2
 
 models:
   - name: stg_transactions_valid
+    description: Validated bronze transactions exposed to dbt with source metadata removed from the model surface.
     columns:
       - name: transaction_id
+        description: Business transaction identifier from the source contract.
         tests:
           - not_null
           - unique
       - name: account_id
+        description: Account identifier used for daily aggregation.
         tests:
           - not_null
       - name: transaction_date
+        description: UTC-normalized transaction timestamp.
         tests:
           - not_null
+      - name: amount
+        description: Positive transaction amount in the source currency.
+      - name: merchant_name
+        description: Merchant name after source normalization.
+      - name: merchant_category
+        description: Merchant category used for top debit-spend category calculations.
+      - name: country_code
+        description: Assigned ISO 3166-1 alpha-2 country code.
       - name: currency
+        description: Source currency code.
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"]
       - name: transaction_type
+        description: Debit or credit indicator from the source contract.
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["debit", "credit"]
       - name: status
+        description: Source transaction status.
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["completed", "pending", "failed", "reversed"]
       - name: is_duplicate
+        description: True when another valid record has the same natural business key and an earlier canonical rank.
         tests:
           - not_null
           - accepted_values:

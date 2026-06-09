@@ -1,3 +1,5 @@
+"""Supabase REST API client for transaction extraction."""
+
 from __future__ import annotations
 
 import logging
@@ -12,10 +14,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ApiAuthError(RuntimeError):
-    pass
+    """Raised when API mode is requested without valid authentication."""
 
 
 class TransactionsApiClient:
+    """Minimal paginated client for the assignment's Supabase transactions endpoint."""
+
     def __init__(
         self,
         base_url: str,

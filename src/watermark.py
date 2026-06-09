@@ -1,3 +1,5 @@
+"""Watermark state management for idempotent incremental ingestion."""
+
 from __future__ import annotations
 
 import json

@@ -1,3 +1,5 @@
+"""Self-contained incremental demo that stages new valid April transactions."""
+
 from __future__ import annotations
 
 import csv

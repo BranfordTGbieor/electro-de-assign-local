@@ -1,3 +1,5 @@
+"""Generated profiling summary for reviewer-friendly data inspection."""
+
 from __future__ import annotations
 
 import argparse

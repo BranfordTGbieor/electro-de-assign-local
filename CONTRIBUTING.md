@@ -52,4 +52,4 @@ make run-incremental
 make test
 ```
 
-The GitHub Actions workflow runs the same local verification path on pushes and pull requests to `main`.
+GitHub Actions runs linting and unit tests on pushes and pull requests to `main`. The full end-to-end pipeline remains a local verification step because the assessment data files are intentionally not tracked in Git.

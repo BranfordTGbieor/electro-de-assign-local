@@ -1,3 +1,5 @@
+"""DuckDB schema management, persistence, and file export helpers."""
+
 from __future__ import annotations
 
 import csv

@@ -1,3 +1,5 @@
+"""Ingestion orchestration: load source records, validate, persist, and export bronze artifacts."""
+
 from __future__ import annotations
 
 import argparse

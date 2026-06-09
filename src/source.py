@@ -1,9 +1,13 @@
+"""Source selection layer that keeps ingestion independent of CSV versus API inputs."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
 
-from src.api_client import TransactionsApiClient
+import requests
+
+from src.api_client import ApiAuthError, TransactionsApiClient
 from src.config import Settings
 from src.csv_client import load_csv_transactions
 
@@ -22,7 +26,7 @@ def load_transactions(settings: Settings, watermark: str | None = None) -> list[
                 page_limit=settings.page_limit,
             )
             return client.fetch_transactions(watermark=watermark)
-        except Exception:
+        except (ApiAuthError, RuntimeError, requests.RequestException):
             if not settings.allow_csv_fallback:
                 raise
             LOGGER.exception("API load failed; falling back to CSV source")

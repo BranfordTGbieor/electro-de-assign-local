@@ -1,3 +1,5 @@
+"""dbt transformation runner and curated-layer export orchestration."""
+
 from __future__ import annotations
 
 import argparse

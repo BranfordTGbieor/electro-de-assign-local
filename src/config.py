@@ -1,3 +1,5 @@
+"""Environment-backed runtime configuration for local and API execution."""
+
 from __future__ import annotations
 
 import os
@@ -11,6 +13,8 @@ ALLOWED_SOURCES = {"csv", "api"}
 
 @dataclass(frozen=True)
 class Settings:
+    """Resolved runtime settings loaded from environment variables."""
+
     api_base_url: str
     api_key: str | None
     source: str

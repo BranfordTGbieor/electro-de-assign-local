@@ -1,3 +1,5 @@
+"""Table-level data quality assertions that complement dbt model tests."""
+
 from __future__ import annotations
 
 import json

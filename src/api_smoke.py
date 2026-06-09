@@ -1,3 +1,5 @@
+"""Small live-source check for validating API connectivity and payload shape."""
+
 from __future__ import annotations
 
 import argparse
