@@ -4,19 +4,7 @@ This backlog reflects the current audit of the Senior Platform Data Engineer ass
 
 ## Priority 1: High-Value Engineering Improvements
 
-### 1. Add API source contract tests
-
-Why it matters: API support is a meaningful alignment point with Task 1, but the current tests do not verify pagination, headers, retry behavior, or CSV/API normalization parity.
-
-Subtasks:
-
-- Mock paginated API responses including the final short page.
-- Verify required `apikey` and `Authorization` headers are sent.
-- Verify `limit`, `offset`, `order=transaction_date.asc`, and `transaction_date=gte.<watermark>` query parameters.
-- Test 401 behavior, 429 retry, 5xx retry, timeout retry, and failure after max retries.
-- Test CSV and API payloads normalize to the same downstream shape.
-
-### 2. Improve source and config validation
+### 1. Improve source and config validation
 
 Why it matters: Senior platform code should fail early with actionable messages for bad runtime settings.
 
@@ -27,7 +15,7 @@ Subtasks:
 - Consider setting `ALLOW_CSV_FALLBACK=false` by default in API mode so real API failures are not hidden during reviewer testing.
 - Parse CSV watermark filtering through timestamp normalization instead of string comparison.
 
-### 3. Add observability and run telemetry
+### 2. Add observability and run telemetry
 
 Why it matters: The role emphasizes reliability, monitoring, audit trails, and recovery.
 
@@ -39,7 +27,7 @@ Subtasks:
 - Add warning thresholds for unexpected quarantine or duplicate spikes.
 - Add `docs/runbook.md` with failure investigation queries.
 
-### 4. Improve idempotent upsert and audit metadata
+### 3. Improve idempotent upsert and audit metadata
 
 Why it matters: Delete-then-insert by `transaction_id` works locally, but merge-like semantics and first/last seen metadata are easier to defend as platform design.
 
@@ -50,7 +38,7 @@ Subtasks:
 - Preserve the first ingestion timestamp and update only reprocessing metadata.
 - Add tests proving reprocessing updates metadata without changing canonical counts.
 
-### 5. Decide quarantine history semantics
+### 4. Decide quarantine history semantics
 
 Why it matters: `INSERT OR REPLACE` keeps one quarantine row per invalid payload and error set. That is idempotent, but it loses repeated-attempt history.
 
@@ -61,7 +49,7 @@ Subtasks:
 - If append-only, add `attempt_number`, `run_seen_count`, or separate attempt metadata.
 - Add tests for invalid records reprocessed through the lookback window.
 
-### 6. Make exported SQL and runtime SQL consistent
+### 5. Make exported SQL and runtime SQL consistent
 
 Why it matters: `sql/daily_account_summary.sql` uses `arg_max(merchant_category, amount)`, while `src/transform.py` ranks category totals. Reviewers may inspect the SQL file directly.
 
@@ -73,7 +61,7 @@ Subtasks:
 
 ## Priority 2: Modeling and Documentation Polish
 
-### 7. Clarify `top_category` spend semantics
+### 6. Clarify `top_category` spend semantics
 
 Why it matters: The assignment says top category is based on highest total spend. The current implementation sums all completed amounts, including credits.
 
@@ -85,7 +73,7 @@ Subtasks:
 - Add tests for category ties and credit-only days.
 - Document the chosen interpretation.
 
-### 8. Add a currency handling caveat
+### 7. Add a currency handling caveat
 
 Why it matters: The daily summary sums amounts across currencies, which may be acceptable for the assignment but is not financially correct in production.
 
@@ -95,7 +83,7 @@ Subtasks:
 - Consider a `gold_daily_account_currency_summary` grouped by account, date, and currency.
 - Document the production requirement for FX rates and a reporting currency.
 
-### 9. Add a silver layer
+### 8. Add a silver layer
 
 Why it matters: The current implementation uses bronze and gold. A small silver layer would make raw, clean, duplicate-audit, quarantine, and curated responsibilities clearer.
 
@@ -106,7 +94,7 @@ Subtasks:
 - Build gold from silver.
 - Document bronze, quarantine, duplicate, silver, and gold responsibilities.
 
-### 10. Add richer profiling and sample outputs
+### 9. Add richer profiling and sample outputs
 
 Why it matters: Reviewers can quickly see that the data was understood, not just processed.
 
@@ -116,7 +104,7 @@ Subtasks:
 - Add compact README snippets from quarantine, duplicate, and daily summary outputs.
 - Keep all profile and sample counts generated, not hardcoded.
 
-### 11. Add architecture decision records
+### 10. Add architecture decision records
 
 Why it matters: Senior-level submissions benefit from explicit tradeoff reasoning.
 
@@ -129,7 +117,7 @@ Subtasks:
 
 ## Priority 3: Optional Stretch
 
-### 12. Add type checking and formatting targets
+### 11. Add type checking and formatting targets
 
 Subtasks:
 
@@ -137,14 +125,14 @@ Subtasks:
 - Add `mypy` or `pyright` only if the setup stays lightweight.
 - Add type-checking to CI after local adoption.
 
-### 13. Add governance and cost-control notes
+### 12. Add governance and cost-control notes
 
 Subtasks:
 
 - Expand `docs/production_notes.md` with Azure Key Vault, Unity Catalog grants, managed identities, PII/data classification assumptions, encryption, auto-termination, and budget alerts.
 - Add `docs/governance.md` if the production notes become too large.
 
-### 14. Add a local API smoke command
+### 13. Add a local API smoke command
 
 Subtasks:
 
@@ -153,7 +141,7 @@ Subtasks:
 - Validate timestamp normalization and schema shape.
 - Keep API smoke tests out of the default test suite.
 
-### 15. Add a static local reporting dashboard
+### 14. Add a static local reporting dashboard
 
 Why it matters: A small dashboard can make generated outputs easier to inspect, but it should not distract from the platform-engineering scope or introduce a frontend build burden.
 
@@ -167,6 +155,6 @@ Subtasks:
 
 ## Suggested Next Three Changes
 
-1. Add API source contract tests for pagination, headers, retries, and CSV/API parity.
-2. Improve source and config validation.
-3. Add observability and run telemetry.
+1. Improve source and config validation.
+2. Add observability and run telemetry.
+3. Improve idempotent upsert and audit metadata.

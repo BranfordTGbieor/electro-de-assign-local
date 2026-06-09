@@ -118,7 +118,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, a tracked schema-contract fixture, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
+Coverage includes validation edge cases, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 
