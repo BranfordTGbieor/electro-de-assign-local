@@ -27,7 +27,7 @@ LOGGER = logging.getLogger(__name__)
 def run_ingestion(mode: str = "full", watermark_output: Path | None = None) -> dict[str, Any]:
     settings = load_settings()
     settings.output_dir.mkdir(parents=True, exist_ok=True)
-    load_schema(settings.csv_path.parent / "transactions_schema.json")
+    schema = load_schema(settings.csv_path.parent / "transactions_schema.json")
     batch_id = str(uuid.uuid4())
     ingestion_timestamp = utc_now_iso()
 
@@ -38,7 +38,7 @@ def run_ingestion(mode: str = "full", watermark_output: Path | None = None) -> d
         lower_bound = effective_watermark(previous_watermark, settings.watermark_lookback_days)
 
     records = load_transactions(settings, watermark=lower_bound)
-    valid_records, invalid_records = validate_transactions(records)
+    valid_records, invalid_records = validate_transactions(records, schema=schema)
     enriched_valid = add_duplicate_metadata(valid_records)
 
     inserted_valid_records = upsert_valid_records(

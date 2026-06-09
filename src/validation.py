@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pycountry
+from jsonschema import Draft7Validator, FormatChecker, ValidationError
 
 REQUIRED_FIELDS = (
     "transaction_id",
@@ -22,6 +23,8 @@ REQUIRED_FIELDS = (
     "status",
     "country_code",
 )
+SOURCE_METADATA_FIELDS = {"id"}
+AMOUNT_GRANULARITY = Decimal("0.01")
 
 ALLOWED_CURRENCIES = {"USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"}
 ALLOWED_TRANSACTION_TYPES = {"debit", "credit"}
@@ -45,9 +48,10 @@ ASSIGNED_COUNTRY_CODES = {country.alpha_2 for country in pycountry.countries}
 
 def load_schema(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
-        schema = json.load(handle)
+        schema = json.load(handle, parse_float=Decimal)
     if not isinstance(schema, dict):
         raise ValueError(f"Schema file must contain a JSON object: {path}")
+    Draft7Validator.check_schema(schema)
     return schema
 
 
@@ -65,17 +69,21 @@ class ValidationResult:
         }
 
 
-def validate_transaction(record: dict[str, Any]) -> dict[str, Any]:
+def validate_transaction(record: dict[str, Any], schema: dict[str, Any] | None = None) -> dict[str, Any]:
     errors: list[str] = []
     normalized: dict[str, Any] = {}
+
+    unexpected_fields = sorted(set(record) - set(REQUIRED_FIELDS) - SOURCE_METADATA_FIELDS)
+    if unexpected_fields:
+        errors.append(f"unexpected fields: {unexpected_fields}")
 
     for field in REQUIRED_FIELDS:
         if field not in record or record[field] is None or str(record[field]) == "":
             errors.append(f"{field} is required")
 
     transaction_id = str(record.get("transaction_id", ""))
-    if transaction_id and not re.fullmatch(r"TXN-\d{4}", transaction_id):
-        errors.append("transaction_id must match format TXN-NNNN")
+    if transaction_id and not re.fullmatch(r"TXN-[A-Z0-9]+", transaction_id):
+        errors.append("transaction_id must match pattern TXN-[A-Z0-9]+")
     normalized["transaction_id"] = transaction_id
 
     account_id = str(record.get("account_id", ""))
@@ -98,6 +106,8 @@ def validate_transaction(record: dict[str, Any]) -> dict[str, Any]:
         errors.append("amount must be decimal")
     elif amount is not None and amount <= Decimal("0"):
         errors.append("amount must be greater than zero")
+    elif amount is not None and amount % AMOUNT_GRANULARITY != 0:
+        errors.append("amount must be a multiple of 0.01")
     normalized["amount"] = amount if amount is not None else raw_amount
 
     _validate_enum(record, normalized, errors, "currency", ALLOWED_CURRENCIES)
@@ -118,16 +128,22 @@ def validate_transaction(record: dict[str, Any]) -> dict[str, Any]:
     if "id" in record and record["id"] not in (None, ""):
         normalized["id"] = record["id"]
 
+    if schema is not None:
+        errors.extend(_validate_against_schema(record, normalized, schema))
+
     if errors:
         return ValidationResult(False, None, errors).as_dict()
     return ValidationResult(True, normalized, []).as_dict()
 
 
-def validate_transactions(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def validate_transactions(
+    records: list[dict[str, Any]],
+    schema: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     valid: list[dict[str, Any]] = []
     invalid: list[dict[str, Any]] = []
     for record in records:
-        result = validate_transaction(record)
+        result = validate_transaction(record, schema=schema)
         if result["is_valid"]:
             valid.append(result["normalized_record"])
         else:
@@ -139,6 +155,46 @@ def validate_transactions(records: list[dict[str, Any]]) -> tuple[list[dict[str,
                 }
             )
     return valid, invalid
+
+
+def _validate_against_schema(
+    record: dict[str, Any],
+    normalized: dict[str, Any],
+    schema: dict[str, Any],
+) -> list[str]:
+    schema_record = {
+        field: normalized[field]
+        for field in REQUIRED_FIELDS
+        if field in normalized and normalized[field] not in (None, "")
+    }
+
+    # Supabase exposes an internal numeric `id`; the assignment explicitly says
+    # not to use it as the business key, so validation treats it as metadata.
+    for field, value in record.items():
+        if field not in REQUIRED_FIELDS and field not in SOURCE_METADATA_FIELDS:
+            schema_record[field] = value
+
+    validator = Draft7Validator(schema, format_checker=FormatChecker())
+    return [
+        _format_schema_error(error)
+        for error in sorted(validator.iter_errors(schema_record), key=_schema_error_sort_key)
+    ]
+
+
+def _schema_error_sort_key(error: ValidationError) -> tuple[str, str]:
+    return (".".join(str(part) for part in error.path), error.message)
+
+
+def _format_schema_error(error: ValidationError) -> str:
+    if error.validator == "required":
+        missing_field = str(error.message).split("'", maxsplit=2)[1]
+        return f"{missing_field} is required by schema"
+    if error.validator == "additionalProperties":
+        return f"record violates schema: {error.message}"
+    path = ".".join(str(part) for part in error.path)
+    if path:
+        return f"{path} violates schema: {error.message}"
+    return f"record violates schema: {error.message}"
 
 
 def _parse_strict_utc_timestamp(value: str) -> datetime | None:

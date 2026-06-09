@@ -15,7 +15,7 @@ The incremental simulation reads 9 records from the two-day lookback window, val
 
 ## Validation Categories
 
-Validation checks include required fields, `TXN-NNNN` and `ACC-NNNN` ID formats, strict UTC timestamp format, real calendar dates, decimal amount greater than zero, case-sensitive enum values, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. Timestamps ending in `Z` or Supabase's `+00:00` UTC offset are accepted and normalized to canonical `Z` form before storage.
+Validation checks include the provided Draft-07 schema contract, `TXN-[A-Z0-9]+` and `ACC-NNNN` ID formats, strict UTC timestamp format, real calendar dates, positive two-decimal-granularity amounts, case-sensitive enum values, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. Timestamps ending in `Z` or Supabase's `+00:00` UTC offset are accepted and normalized to canonical `Z` form before storage. Supabase's internal `id` field is preserved as source metadata, while other unexpected fields are rejected.
 
 The dataset includes invalid rows covering zero or negative amount, missing merchant name, non-strict timestamp format, invalid calendar date, invalid enum casing, unsupported merchant category, and invalid country codes.
 

@@ -95,7 +95,9 @@ Observed results after `make run` with the assignment dataset: 352 source rows, 
 
 ## Data Quality
 
-Validation is implemented in `src/validation.py`. It checks required fields, ID formats, strict UTC timestamps, positive decimal amounts, case-sensitive enums, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. CSV timestamps ending in `Z` and Supabase API timestamps ending in `+00:00` are accepted and normalized to canonical `Z` form before storage. Invalid records are not dropped or coerced; all validation errors for each record are collected and written to `bronze_transactions_quarantine` plus `outputs/quarantine_records.csv`.
+Validation is implemented in `src/validation.py` and is run against the provided Draft-07 schema at ingestion time. CSV amount strings are coerced to decimals before schema validation, and Supabase's internal `id` field is treated as source metadata rather than part of the business contract. Other unexpected fields are rejected because the schema uses `additionalProperties: false`.
+
+The validator checks required fields, ID formats, strict UTC timestamps, positive two-decimal-granularity amounts, case-sensitive enums, non-blank merchant names, and assigned ISO 3166-1 alpha-2 country codes. CSV timestamps ending in `Z` and Supabase API timestamps ending in `+00:00` are accepted and normalized to canonical `Z` form before storage. The schema description notes the original assignment dataset date and account ranges; those are treated as dataset assumptions, not hard validation constraints, so the April incremental demo can stage new valid records. Invalid records are not dropped or coerced; all validation errors for each record are collected and written to `bronze_transactions_quarantine` plus `outputs/quarantine_records.csv`.
 
 ## Duplicate Strategy
 
@@ -116,7 +118,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
+Coverage includes validation edge cases, a tracked schema-contract fixture, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 
