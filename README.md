@@ -44,7 +44,7 @@ OUTPUT_DIR=outputs
 WATERMARK_LOOKBACK_DAYS=2
 ```
 
-API mode uses `TRANSACTIONS_SOURCE=api` and requires `TRANSACTIONS_API_KEY`. API failures can fall back to CSV when `ALLOW_CSV_FALLBACK=true`.
+API mode uses `TRANSACTIONS_SOURCE=api` and requires `TRANSACTIONS_API_KEY`. API failures fail fast by default; CSV fallback is available only when `ALLOW_CSV_FALLBACK=true` is set explicitly.
 
 The full pipeline requires the assignment files to exist locally:
 
@@ -105,7 +105,7 @@ Duplicate real-world transactions are identified by a natural key containing eve
 
 ## Watermark Strategy
 
-Watermark state is stored in `control_ingestion_watermarks`. The first run has no watermark and reads all available records. Successful runs persist the max valid `transaction_date`. Incremental runs subtract `WATERMARK_LOOKBACK_DAYS` from the prior watermark to reprocess a small late-arrival window. CSV mode applies the same date filter locally that API mode sends as `transaction_date=gte.<watermark>`. Upserts by `transaction_id` prevent duplicate rows when the lookback window is reprocessed. If the incremental batch contains no truly new rows, the run still succeeds and keeps the prior watermark.
+Watermark state is stored in `control_ingestion_watermarks`. The first run has no watermark and reads all available records. Successful runs persist the max valid `transaction_date`. Incremental runs subtract `WATERMARK_LOOKBACK_DAYS` from the prior watermark to reprocess a small late-arrival window. CSV mode applies the same timestamp-normalized date filter locally that API mode sends as `transaction_date=gte.<watermark>`. Upserts by `transaction_id` prevent duplicate rows when the lookback window is reprocessed. If the incremental batch contains no truly new rows, the run still succeeds and keeps the prior watermark.
 
 ## Daily Summary Rules
 
@@ -118,7 +118,7 @@ make lint
 make test
 ```
 
-Coverage includes validation edge cases, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
+Coverage includes validation edge cases, configuration guardrails, a tracked schema-contract fixture, API pagination/header/retry contracts, CSV/API normalization parity, duplicate natural-key behavior, watermark updates and lookback calculation, daily summary exclusion rules, dbt model tests, and table-level gold assertions.
 
 ## CI and Commit Discipline
 

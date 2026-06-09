@@ -92,11 +92,11 @@ def validate_transaction(record: dict[str, Any], schema: dict[str, Any] | None =
     normalized["account_id"] = account_id
 
     raw_date = str(record.get("transaction_date", ""))
-    parsed_date = _parse_strict_utc_timestamp(raw_date)
-    if parsed_date is None and raw_date:
+    normalized_date = normalize_utc_timestamp(raw_date)
+    if normalized_date is None and raw_date:
         errors.append("transaction_date must be a valid ISO 8601 UTC timestamp ending with Z or +00:00")
-    elif parsed_date is not None:
-        normalized["transaction_date"] = parsed_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+    elif normalized_date is not None:
+        normalized["transaction_date"] = normalized_date
     else:
         normalized["transaction_date"] = raw_date
 
@@ -155,6 +155,13 @@ def validate_transactions(
                 }
             )
     return valid, invalid
+
+
+def normalize_utc_timestamp(value: str) -> str | None:
+    parsed = _parse_strict_utc_timestamp(value)
+    if parsed is None:
+        return None
+    return parsed.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _validate_against_schema(
