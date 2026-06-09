@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 import requests
 
+from src.api_client import ApiAuthError, ApiTransientError
 from src.config import Settings
 from src.source import load_transactions
 
@@ -40,6 +41,20 @@ def test_api_source_can_fallback_to_csv_for_request_failures(
     tmp_path: Path,
 ) -> None:
     def failing_fetch_transactions(*_args: Any, **_kwargs: Any) -> list[dict[str, Any]]:
+        raise ApiTransientError("HTTP 500 after retries")
+
+    monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", failing_fetch_transactions)
+
+    records = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
+
+    assert [record["transaction_id"] for record in records] == ["TXN-0001"]
+
+
+def test_api_source_can_fallback_to_csv_for_connection_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_fetch_transactions(*_args: Any, **_kwargs: Any) -> list[dict[str, Any]]:
         raise requests.ConnectionError("network unavailable")
 
     monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", failing_fetch_transactions)
@@ -47,6 +62,19 @@ def test_api_source_can_fallback_to_csv_for_request_failures(
     records = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
 
     assert [record["transaction_id"] for record in records] == ["TXN-0001"]
+
+
+def test_api_source_does_not_fallback_for_auth_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_fetch_transactions(*_args: Any, **_kwargs: Any) -> list[dict[str, Any]]:
+        raise ApiAuthError("bad key")
+
+    monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", failing_fetch_transactions)
+
+    with pytest.raises(ApiAuthError, match="bad key"):
+        load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
 
 
 def test_api_source_does_not_fallback_for_programming_errors(

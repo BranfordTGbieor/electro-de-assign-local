@@ -96,3 +96,12 @@ For API connectivity only:
 ```bash
 TRANSACTIONS_SOURCE=api TRANSACTIONS_API_KEY=your-token make api-smoke
 ```
+
+## Local Scope Tradeoffs
+
+Some choices are intentionally simple for this local assignment:
+
+- API extraction uses deterministic ordering plus offset pagination because the provided Supabase endpoint is only an optional source path. In production, use cursor/keyset pagination when the source supports it.
+- CSV header normalization is deliberately conservative: trim and lowercase headers, but do not silently map broad aliases. Unexpected schema drift should fail validation instead of being hidden.
+- Duplicate metadata is recomputed across the local bronze table after ingestion. This is simple and auditable for the assignment scale; production should use incremental `MERGE` logic and first-seen/last-seen metadata.
+- `data_profile.json` derives invalid-rule counts from the local quarantine error string. Production quarantine should store structured error arrays for safer analytics.

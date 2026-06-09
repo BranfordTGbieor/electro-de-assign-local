@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 import requests
 
-from src.api_client import ApiAuthError, TransactionsApiClient
+from src.api_client import ApiAuthError, ApiTransientError, TransactionsApiClient
 from src.csv_client import normalize_field_names
 from src.validation import load_schema, validate_transaction
 
@@ -172,7 +172,7 @@ def test_timeout_fails_after_max_retries(monkeypatch: pytest.MonkeyPatch) -> Non
         max_retries=2,
     )
 
-    with pytest.raises(RuntimeError, match="timed out after retries"):
+    with pytest.raises(ApiTransientError, match="timed out after retries"):
         client.fetch_transactions()
 
     assert sleeps == [0, 1]
@@ -192,7 +192,7 @@ def test_retryable_status_fails_after_max_retries(monkeypatch: pytest.MonkeyPatc
         max_retries=2,
     )
 
-    with pytest.raises(requests.HTTPError, match="HTTP 500"):
+    with pytest.raises(ApiTransientError, match="HTTP 500"):
         client.fetch_transactions()
 
     assert sleeps == [0, 1]

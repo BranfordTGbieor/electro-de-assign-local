@@ -33,7 +33,7 @@ def get_watermark(
 def effective_watermark(last_watermark: str | None, lookback_days: int) -> str | None:
     if last_watermark is None:
         return None
-    parsed = datetime.strptime(last_watermark, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    parsed = _parse_utc_timestamp(last_watermark)
     return (parsed - timedelta(days=lookback_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -93,15 +93,35 @@ def export_watermark(state: dict[str, Any], output_path: Path) -> None:
 
 
 def _max_iso_timestamp(left: str | None, right: str | None) -> str | None:
-    values = [value for value in (left, right) if value]
-    return max(values) if values else None
+    values = [_parse_utc_timestamp(value) for value in (left, right) if value]
+    return max(values).strftime("%Y-%m-%dT%H:%M:%SZ") if values else None
 
 
 def _timestamp_to_iso(value: Any) -> str:
     if isinstance(value, datetime):
-        return value.replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        else:
+            value = value.astimezone(timezone.utc)
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
     return str(value).replace(" ", "T")[:19] + "Z"
 
 
 def _to_duckdb_timestamp(value: str) -> str:
-    return value.replace("T", " ").replace("Z", "")
+    parsed = _parse_utc_timestamp(value)
+    return parsed.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_utc_timestamp(value: str) -> datetime:
+    value = str(value)
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S+00:00", "%Y-%m-%d %H:%M:%S"):
+        try:
+            parsed = datetime.strptime(value, fmt)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            else:
+                parsed = parsed.astimezone(timezone.utc)
+            return parsed
+        except ValueError:
+            continue
+    raise ValueError(f"timestamp must be a UTC ISO 8601 value: {value}")

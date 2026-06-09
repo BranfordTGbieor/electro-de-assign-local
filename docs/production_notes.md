@@ -51,7 +51,7 @@ Bronze should preserve evidence. Silver should be the preferred analytical sourc
 The production ingestion job should:
 
 - Read API credentials from Key Vault.
-- Page deterministically by `transaction_date.asc`.
+- Page with a stable cursor or keyset such as `(transaction_date, transaction_id)` when the source supports it.
 - Send `transaction_date=gte.<watermark>` for incremental reads.
 - Retry timeouts, 429, and 5xx responses with bounded backoff.
 - Fail fast on authentication errors.
@@ -66,6 +66,8 @@ Validation should remain schema-first and versioned. Python or PySpark should ha
 Quarantine should be append-only in production. Repeated validation failures are useful operational signals, so each failed attempt should preserve run ID, schema version, raw payload, error list, source, and ingestion timestamp.
 
 Duplicate handling should match the local semantics: flag duplicates by natural-key hash, keep all rows in bronze, expose duplicate groups for review, and exclude duplicates from default gold models. Production tables should add first-seen and last-seen metadata.
+
+Validation errors should be stored as structured arrays or child rows, not only as display strings, so quarantine analytics do not depend on text parsing.
 
 ## Transformations And Data Quality
 

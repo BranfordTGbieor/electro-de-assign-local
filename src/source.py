@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 
-from src.api_client import ApiAuthError, TransactionsApiClient
+from src.api_client import ApiTransientError, TransactionsApiClient
 from src.config import Settings
 from src.csv_client import load_csv_transactions
 
@@ -26,7 +26,7 @@ def load_transactions(settings: Settings, watermark: str | None = None) -> list[
                 page_limit=settings.page_limit,
             )
             return client.fetch_transactions(watermark=watermark)
-        except (ApiAuthError, RuntimeError, requests.RequestException):
+        except (ApiTransientError, requests.ConnectionError, requests.Timeout):
             if not settings.allow_csv_fallback:
                 raise
             LOGGER.exception("API load failed; falling back to CSV source")

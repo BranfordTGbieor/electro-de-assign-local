@@ -17,6 +17,10 @@ class ApiAuthError(RuntimeError):
     """Raised when API mode is requested without valid authentication."""
 
 
+class ApiTransientError(RuntimeError):
+    """Raised when a retryable API failure remains unresolved after retries."""
+
+
 class TransactionsApiClient:
     """Minimal paginated client for the assignment's Supabase transactions endpoint."""
 
@@ -80,7 +84,7 @@ class TransactionsApiClient:
                 )
             except requests.Timeout as exc:
                 if attempt == self.max_retries:
-                    raise RuntimeError("API request timed out after retries") from exc
+                    raise ApiTransientError("API request timed out after retries") from exc
                 self._sleep(attempt)
                 continue
 
@@ -88,7 +92,7 @@ class TransactionsApiClient:
                 raise ApiAuthError("API authentication failed with HTTP 401")
             if response.status_code in {429} or 500 <= response.status_code < 600:
                 if attempt == self.max_retries:
-                    response.raise_for_status()
+                    raise ApiTransientError(f"API returned retryable HTTP {response.status_code} after retries")
                 log_event(
                     LOGGER,
                     "api_retry",

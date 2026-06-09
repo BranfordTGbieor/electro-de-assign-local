@@ -93,10 +93,22 @@ def write_dbt_profile(profiles_dir: Path, duckdb_path: Path) -> None:
 
 
 def run_dbt_command(args: list[str]) -> subprocess.CompletedProcess[str]:
-    dbt_executable = shutil.which("dbt") or str(Path(sys.executable).with_name("dbt"))
+    dbt_executable = resolve_dbt_executable()
     command = [dbt_executable, *args]
     log_event(LOGGER, "dbt_command_started", command=" ".join(command))
     return subprocess.run(command, check=True, text=True)
+
+
+def resolve_dbt_executable() -> str:
+    dbt_on_path = shutil.which("dbt")
+    if dbt_on_path:
+        return dbt_on_path
+
+    venv_sibling = Path(sys.executable).with_name("dbt")
+    if venv_sibling.exists():
+        return str(venv_sibling)
+
+    raise RuntimeError("dbt executable not found. Run `make setup` before running transformations.")
 
 
 def main() -> None:

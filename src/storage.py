@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-import csv
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import duckdb
+
+EXPORT_TABLES = {
+    "bronze_transactions_valid",
+    "bronze_transactions_quarantine",
+    "bronze_transactions_duplicates",
+    "gold_daily_account_summary",
+}
 
 
 def utc_now_iso() -> str:
@@ -255,6 +261,8 @@ def refresh_duplicate_metadata(conn: duckdb.DuckDBPyConnection) -> int:
 
 
 def export_table(conn: duckdb.DuckDBPyConnection, table_name: str, output_path: Path) -> None:
+    if table_name not in EXPORT_TABLES:
+        raise ValueError(f"Unsupported export table: {table_name}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     conn.execute(
         f"""
@@ -272,14 +280,6 @@ def export_run_summary(summary: dict[str, Any], output_path: Path) -> None:
     output_path.write_text(json.dumps(summary, indent=2, sort_keys=True, default=str), encoding="utf-8")
 
 
-def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def _quarantine_id(raw_payload: dict[str, Any], errors: list[str]) -> str:
     import hashlib
 
@@ -288,4 +288,15 @@ def _quarantine_id(raw_payload: dict[str, Any], errors: list[str]) -> str:
 
 
 def _to_duckdb_timestamp(value: str) -> str:
-    return value.replace("T", " ").replace("Z", "")
+    value = str(value)
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S+00:00", "%Y-%m-%d %H:%M:%S"):
+        try:
+            parsed = datetime.strptime(value, fmt)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            else:
+                parsed = parsed.astimezone(timezone.utc)
+            return parsed.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+    raise ValueError(f"timestamp must be a UTC ISO 8601 value: {value}")
