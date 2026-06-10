@@ -23,35 +23,36 @@ def clear_config_env(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-def test_load_settings_uses_safe_csv_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_settings_uses_api_primary_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_config_env(monkeypatch)
 
     settings = load_settings()
 
-    assert settings.source == "csv"
+    assert settings.source == "api"
+    assert settings.api_key is None
     assert settings.page_limit == 1000
     assert settings.watermark_lookback_days == 2
     assert settings.allow_csv_fallback is True
 
 
-def test_api_source_disables_csv_fallback_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_csv_source_disables_csv_fallback_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_config_env(monkeypatch)
-    monkeypatch.setenv("TRANSACTIONS_SOURCE", "api")
+    monkeypatch.setenv("TRANSACTIONS_SOURCE", "csv")
 
     settings = load_settings()
 
-    assert settings.source == "api"
+    assert settings.source == "csv"
     assert settings.allow_csv_fallback is False
 
 
-def test_api_source_can_explicitly_enable_csv_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_api_source_can_explicitly_disable_csv_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     clear_config_env(monkeypatch)
     monkeypatch.setenv("TRANSACTIONS_SOURCE", "api")
-    monkeypatch.setenv("ALLOW_CSV_FALLBACK", "true")
+    monkeypatch.setenv("ALLOW_CSV_FALLBACK", "false")
 
     settings = load_settings()
 
-    assert settings.allow_csv_fallback is True
+    assert settings.allow_csv_fallback is False
 
 
 def test_invalid_source_fails_early(monkeypatch: pytest.MonkeyPatch) -> None:

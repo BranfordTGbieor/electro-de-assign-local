@@ -6,7 +6,7 @@ This document keeps the local architecture, data quality behavior, and troublesh
 
 ```mermaid
 flowchart LR
-    A[CSV or Supabase API] --> B[source abstraction]
+    A[Supabase API or CSV fallback] --> B[source abstraction]
     B --> C[validation]
     C -->|valid| D[bronze_transactions_valid]
     C -->|invalid| E[bronze_transactions_quarantine]
@@ -21,17 +21,19 @@ flowchart LR
 
 The pipeline separates source extraction, validation, persistence, transformation, and operational control:
 
-- `src/source.py` hides whether records come from CSV or the Supabase REST API.
+- `src/source.py` keeps the API-first source path separate from the attached CSV fallback.
 - `src/validation.py` applies the provided JSON Schema plus checks that need Python logic.
 - DuckDB stores bronze, quarantine, duplicate, control, and gold tables locally.
 - dbt builds the curated daily account summary and runs model tests.
 - JSON/CSV artifacts under `outputs/` make the run easy to inspect without opening DuckDB.
 
+When API mode falls back to CSV, `outputs/run_summary.json` keeps `source = "api"` for the configured pipeline and records `resolved_source = "csv_fallback"` for the source actually read in that run.
+
 ## Design Choices
 
 ### Validation And Quarantine
 
-Validation is schema-first. CSV amount strings and API `+00:00` timestamps are normalized before validation so both sources produce the same downstream shape. Supabase's internal `id` is treated as source metadata; other unexpected fields are rejected.
+Validation is schema-first. API `+00:00` timestamps and CSV amount strings are normalized before validation so both sources produce the same downstream shape. Supabase's internal `id` is treated as source metadata; other unexpected fields are rejected.
 
 Invalid records are not dropped. They are written to `bronze_transactions_quarantine` with the raw payload, all validation errors, source, batch ID, and ingestion timestamp.
 
@@ -51,7 +53,7 @@ The control table stores the latest successful transaction timestamp. Incrementa
 
 ## Data Quality Snapshot
 
-After `make run` with the assignment dataset:
+After `make run` with the attached CSV fallback dataset:
 
 | Metric | Value |
 | --- | ---: |
@@ -78,7 +80,7 @@ For generated details, inspect:
 
 | Symptom | First checks |
 | --- | --- |
-| Ingestion fails | Confirm `TRANSACTIONS_SOURCE`, local data files, API key if using API mode, and `PAGE_LIMIT`. |
+| Ingestion fails | Confirm `TRANSACTIONS_SOURCE`, API endpoint availability, optional API key if one was issued, local fallback files, and `PAGE_LIMIT`. |
 | High quarantine rate | Inspect `outputs/quarantine_records.csv` and group by `error_reason`. Common causes are missing fields, bad timestamps, invalid enum casing, non-positive amounts, and invalid country codes. |
 | Duplicate rate spikes | Inspect `outputs/duplicate_records.csv`. A spike can indicate source replay, API pagination issues, or upstream retry behavior. |
 | Watermark does not advance | Check `outputs/watermark_run*.json` and `outputs/run_summary.json`. This is expected when no newer valid records arrive. |
@@ -94,14 +96,16 @@ make run
 For API connectivity only:
 
 ```bash
-TRANSACTIONS_SOURCE=api TRANSACTIONS_API_KEY=your-token make api-smoke
+TRANSACTIONS_SOURCE=api make api-smoke
 ```
+
+If an API key was issued, add `TRANSACTIONS_API_KEY=your-token`.
 
 ## Local Scope Tradeoffs
 
 Some choices are intentionally simple for this local assignment:
 
-- API extraction uses deterministic ordering plus offset pagination because the provided Supabase endpoint is only an optional source path. In production, use cursor/keyset pagination when the source supports it.
+- API extraction uses deterministic ordering plus offset pagination because that is enough for the assignment endpoint. In production, use cursor/keyset pagination when the source supports it.
 - CSV header normalization is deliberately conservative: trim and lowercase headers, but do not silently map broad aliases. Unexpected schema drift should fail validation instead of being hidden.
 - Duplicate metadata is recomputed across the local bronze table after ingestion. This is simple and auditable for the assignment scale; production should use incremental `MERGE` logic and first-seen/last-seen metadata.
 - `data_profile.json` derives invalid-rule counts from the local quarantine error string. Production quarantine should store structured error arrays for safer analytics.

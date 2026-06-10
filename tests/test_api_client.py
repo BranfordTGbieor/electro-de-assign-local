@@ -82,29 +82,35 @@ def test_fetch_transactions_paginates_until_final_short_page(monkeypatch: pytest
     }
 
 
-def test_missing_api_key_fails_before_request(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_get(*_args: Any, **_kwargs: Any) -> FakeResponse:
-        raise AssertionError("request should not be sent without an API key")
+def test_missing_api_key_sends_request_without_auth_headers(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, Any]] = []
+
+    def fake_get(url: str, **kwargs: Any) -> FakeResponse:
+        calls.append({"url": url, **kwargs})
+        return FakeResponse(200, [api_record()])
 
     monkeypatch.setattr(requests, "get", fake_get)
     client = TransactionsApiClient(base_url="https://example.supabase.co/rest/v1", api_key=None)
 
-    with pytest.raises(ApiAuthError, match="TRANSACTIONS_API_KEY is required"):
-        client.fetch_transactions()
+    records = client.fetch_transactions()
+
+    assert records == [api_record()]
+    assert calls[0]["headers"] == {}
 
 
-def test_401_response_raises_auth_error_without_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("status_code", [401, 403])
+def test_auth_response_raises_auth_error_without_retry(monkeypatch: pytest.MonkeyPatch, status_code: int) -> None:
     attempts = 0
 
     def fake_get(*_args: Any, **_kwargs: Any) -> FakeResponse:
         nonlocal attempts
         attempts += 1
-        return FakeResponse(401, {"message": "invalid token"})
+        return FakeResponse(status_code, {"message": "invalid token"})
 
     monkeypatch.setattr(requests, "get", fake_get)
     client = TransactionsApiClient(base_url="https://example.supabase.co/rest/v1", api_key="bad-token")
 
-    with pytest.raises(ApiAuthError, match="HTTP 401"):
+    with pytest.raises(ApiAuthError, match=f"HTTP {status_code}"):
         client.fetch_transactions()
 
     assert attempts == 1

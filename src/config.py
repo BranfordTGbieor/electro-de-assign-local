@@ -46,7 +46,7 @@ def _int_env(name: str, default: str, minimum: int) -> int:
 
 def load_settings() -> Settings:
     load_dotenv()
-    source = os.getenv("TRANSACTIONS_SOURCE", "csv").strip().lower()
+    source = os.getenv("TRANSACTIONS_SOURCE", "api").strip().lower()
     if source not in ALLOWED_SOURCES:
         raise ValueError("TRANSACTIONS_SOURCE must be either 'csv' or 'api'")
 
@@ -54,7 +54,7 @@ def load_settings() -> Settings:
     watermark_lookback_days = _int_env("WATERMARK_LOOKBACK_DAYS", "2", minimum=0)
     allow_csv_fallback = _bool_env(
         os.getenv("ALLOW_CSV_FALLBACK"),
-        default=source != "api",
+        default=source == "api",
     )
 
     return Settings(
@@ -62,7 +62,7 @@ def load_settings() -> Settings:
             "TRANSACTIONS_API_BASE_URL",
             "https://fgbjekjqnbmtkmeewexb.supabase.co/rest/v1",
         ).rstrip("/"),
-        api_key=os.getenv("TRANSACTIONS_API_KEY"),
+        api_key=os.getenv("TRANSACTIONS_API_KEY") or None,
         source=source,
         csv_path=Path(os.getenv("TRANSACTIONS_CSV_PATH", "data/transactions.csv")),
         duckdb_path=Path(os.getenv("DUCKDB_PATH", ".local/transactions.duckdb")),

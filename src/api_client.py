@@ -39,9 +39,6 @@ class TransactionsApiClient:
         self.max_retries = max_retries
 
     def fetch_transactions(self, watermark: str | None = None) -> list[dict[str, Any]]:
-        if not self.api_key:
-            raise ApiAuthError("TRANSACTIONS_API_KEY is required when TRANSACTIONS_SOURCE=api")
-
         offset = 0
         records: list[dict[str, Any]] = []
         while True:
@@ -55,8 +52,6 @@ class TransactionsApiClient:
         return records
 
     def fetch_page(self, offset: int = 0, watermark: str | None = None) -> list[dict[str, Any]]:
-        if not self.api_key:
-            raise ApiAuthError("TRANSACTIONS_API_KEY is required when TRANSACTIONS_SOURCE=api")
         return self._fetch_page(offset=offset, watermark=watermark)
 
     def _fetch_page(self, offset: int, watermark: str | None) -> list[dict[str, Any]]:
@@ -68,10 +63,12 @@ class TransactionsApiClient:
         if watermark:
             params["transaction_date"] = f"gte.{watermark}"
 
-        headers = {
-            "apikey": self.api_key or "",
-            "Authorization": f"Bearer {self.api_key}",
-        }
+        headers = {}
+        if self.api_key:
+            headers = {
+                "apikey": self.api_key,
+                "Authorization": f"Bearer {self.api_key}",
+            }
 
         url = f"{self.base_url}/transactions"
         for attempt in range(self.max_retries + 1):
@@ -88,8 +85,8 @@ class TransactionsApiClient:
                 self._sleep(attempt)
                 continue
 
-            if response.status_code == 401:
-                raise ApiAuthError("API authentication failed with HTTP 401")
+            if response.status_code in {401, 403}:
+                raise ApiAuthError(f"API authentication failed with HTTP {response.status_code}")
             if response.status_code in {429} or 500 <= response.status_code < 600:
                 if attempt == self.max_retries:
                     raise ApiTransientError(f"API returned retryable HTTP {response.status_code} after retries")

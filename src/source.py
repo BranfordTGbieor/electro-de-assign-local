@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import requests
@@ -14,9 +15,18 @@ from src.csv_client import load_csv_transactions
 LOGGER = logging.getLogger(__name__)
 
 
-def load_transactions(settings: Settings, watermark: str | None = None) -> list[dict[str, Any]]:
+@dataclass(frozen=True)
+class LoadedTransactions:
+    records: list[dict[str, Any]]
+    resolved_source: str
+
+
+def load_transactions(settings: Settings, watermark: str | None = None) -> LoadedTransactions:
     if settings.source == "csv":
-        return load_csv_transactions(settings.csv_path, watermark=watermark)
+        return LoadedTransactions(
+            records=load_csv_transactions(settings.csv_path, watermark=watermark),
+            resolved_source="csv",
+        )
 
     if settings.source == "api":
         try:
@@ -25,11 +35,17 @@ def load_transactions(settings: Settings, watermark: str | None = None) -> list[
                 api_key=settings.api_key,
                 page_limit=settings.page_limit,
             )
-            return client.fetch_transactions(watermark=watermark)
-        except (ApiTransientError, requests.ConnectionError, requests.Timeout):
+            return LoadedTransactions(
+                records=client.fetch_transactions(watermark=watermark),
+                resolved_source="api",
+            )
+        except (ApiTransientError, requests.RequestException):
             if not settings.allow_csv_fallback:
                 raise
             LOGGER.exception("API load failed; falling back to CSV source")
-            return load_csv_transactions(settings.csv_path, watermark=watermark)
+            return LoadedTransactions(
+                records=load_csv_transactions(settings.csv_path, watermark=watermark),
+                resolved_source="csv_fallback",
+            )
 
     raise ValueError("TRANSACTIONS_SOURCE must be either 'csv' or 'api'")

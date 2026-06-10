@@ -6,7 +6,7 @@ import argparse
 import json
 from typing import Any
 
-from src.api_client import ApiAuthError, TransactionsApiClient
+from src.api_client import TransactionsApiClient
 from src.config import load_settings
 from src.validation import load_schema, validate_transactions
 
@@ -15,8 +15,6 @@ def run_api_smoke(limit: int = 5) -> dict[str, Any]:
     settings = load_settings()
     if settings.source != "api":
         raise ValueError("api-smoke requires TRANSACTIONS_SOURCE=api")
-    if not settings.api_key:
-        raise ApiAuthError("TRANSACTIONS_API_KEY is required for api-smoke")
 
     schema = load_schema(settings.csv_path.parent / "transactions_schema.json")
     client = TransactionsApiClient(

@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from src.api_client import ApiAuthError, TransactionsApiClient
+from src.api_client import TransactionsApiClient
 from src.api_smoke import run_api_smoke
 from tests.test_api_client import api_record
 from tests.test_config import clear_config_env
@@ -14,7 +14,7 @@ from tests.test_config import clear_config_env
 SCHEMA_FIXTURE = Path(__file__).parent / "fixtures" / "transactions_schema_contract.json"
 
 
-def configure_api_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *, api_key: str | None = "secret") -> None:
+def configure_api_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *, api_key: str | None = None) -> None:
     clear_config_env(monkeypatch)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -54,13 +54,6 @@ def test_api_smoke_requires_api_source(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TRANSACTIONS_SOURCE", "csv")
 
     with pytest.raises(ValueError, match="TRANSACTIONS_SOURCE=api"):
-        run_api_smoke()
-
-
-def test_api_smoke_requires_api_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    configure_api_env(monkeypatch, tmp_path, api_key=None)
-
-    with pytest.raises(ApiAuthError, match="TRANSACTIONS_API_KEY"):
         run_api_smoke()
 
 

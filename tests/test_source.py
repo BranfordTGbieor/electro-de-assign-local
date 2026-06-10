@@ -45,9 +45,25 @@ def test_api_source_can_fallback_to_csv_for_request_failures(
 
     monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", failing_fetch_transactions)
 
-    records = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
+    loaded = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
 
-    assert [record["transaction_id"] for record in records] == ["TXN-0001"]
+    assert loaded.resolved_source == "csv_fallback"
+    assert [record["transaction_id"] for record in loaded.records] == ["TXN-0001"]
+
+
+def test_api_source_reports_api_when_request_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def fetch_transactions(*_args: Any, **_kwargs: Any) -> list[dict[str, Any]]:
+        return [{"transaction_id": "TXN-API"}]
+
+    monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", fetch_transactions)
+
+    loaded = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
+
+    assert loaded.resolved_source == "api"
+    assert loaded.records == [{"transaction_id": "TXN-API"}]
 
 
 def test_api_source_can_fallback_to_csv_for_connection_failures(
@@ -59,9 +75,10 @@ def test_api_source_can_fallback_to_csv_for_connection_failures(
 
     monkeypatch.setattr("src.source.TransactionsApiClient.fetch_transactions", failing_fetch_transactions)
 
-    records = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
+    loaded = load_transactions(settings_for_source(tmp_path, allow_csv_fallback=True))
 
-    assert [record["transaction_id"] for record in records] == ["TXN-0001"]
+    assert loaded.resolved_source == "csv_fallback"
+    assert [record["transaction_id"] for record in loaded.records] == ["TXN-0001"]
 
 
 def test_api_source_does_not_fallback_for_auth_errors(

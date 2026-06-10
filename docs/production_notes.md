@@ -7,7 +7,7 @@ This repository is local-first so reviewers can run it without cloud credentials
 | Local implementation | Production implementation |
 | --- | --- |
 | Makefile and local CLI | Databricks Workflows or Azure Data Factory |
-| CSV/API source clients | Managed ingestion job with credentials from Key Vault |
+| API source with CSV fallback | Managed ingestion job with credentials from Key Vault when required |
 | DuckDB | Delta Lake on ADLS Gen2 |
 | dbt with DuckDB | dbt on Databricks SQL or Spark SQL |
 | Local JSON/CSV outputs | Delta audit, metrics, and export tables |
@@ -50,7 +50,7 @@ Bronze should preserve evidence. Silver should be the preferred analytical sourc
 
 The production ingestion job should:
 
-- Read API credentials from Key Vault.
+- Read API credentials from Key Vault when the source requires authentication.
 - Page with a stable cursor or keyset such as `(transaction_date, transaction_id)` when the source supports it.
 - Send `transaction_date=gte.<watermark>` for incremental reads.
 - Retry timeouts, 429, and 5xx responses with bounded backoff.

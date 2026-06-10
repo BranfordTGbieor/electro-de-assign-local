@@ -7,9 +7,9 @@
 ![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)
 ![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
 
-Local-first implementation of the Senior Platform Data Engineer assignment. It ingests transaction records from CSV by default, optionally supports the Supabase REST API, validates and quarantines records, flags duplicate business transactions, stores data in DuckDB, builds a dbt-powered daily account summary, and persists incremental watermark state.
+Local-first implementation of the Senior Platform Data Engineer assignment. It ingests transaction records from the Supabase REST API by default, uses the provided CSV as the local fallback snapshot, validates and quarantines records, flags duplicate business transactions, stores data in DuckDB, builds a dbt-powered daily account summary, and persists incremental watermark state.
 
-The provided dataset, schema, and generated outputs are intentionally not tracked in Git. Place the assessment files here before running the pipeline:
+The provided dataset, schema, and generated outputs are intentionally not tracked in Git. Place the attached fallback files here before running the pipeline:
 
 ```text
 data/transactions.csv
@@ -47,14 +47,17 @@ If your machine forces a private package index, install dependencies explicitly:
 Configuration defaults are in `.env.example`:
 
 ```text
-TRANSACTIONS_SOURCE=csv
+TRANSACTIONS_SOURCE=api
+TRANSACTIONS_API_BASE_URL=https://fgbjekjqnbmtkmeewexb.supabase.co/rest/v1
+TRANSACTIONS_API_KEY=
 TRANSACTIONS_CSV_PATH=data/transactions.csv
 DUCKDB_PATH=.local/transactions.duckdb
 OUTPUT_DIR=outputs
 WATERMARK_LOOKBACK_DAYS=2
+ALLOW_CSV_FALLBACK=true
 ```
 
-API mode uses `TRANSACTIONS_SOURCE=api` and requires `TRANSACTIONS_API_KEY`. API failures fail fast by default; CSV fallback is available only when `ALLOW_CSV_FALLBACK=true` is set explicitly.
+API mode is the default because the assignment email identifies the API endpoint as the primary source and the attached CSV as the fallback copy. `TRANSACTIONS_API_KEY` is optional and can be left blank unless the endpoint requires one. Authentication failures fail fast; transient API failures and endpoint unavailability fall back to CSV only when `ALLOW_CSV_FALLBACK=true`.
 
 ## Run
 
@@ -75,14 +78,16 @@ Core commands:
 | `make demo-incremental-new-data` | Prove that a later CSV batch inserts three new April records and advances the watermark. |
 | `make dbt-run` / `make dbt-test` | Run the dbt layer directly after ingestion. |
 | `make profile` | Regenerate `outputs/data_profile.json` from the local DuckDB database. |
-| `make api-smoke` | Fetch and validate one small API page; requires API credentials. |
+| `make api-smoke` | Fetch and validate one small API page. |
 | `make lint` / `make test` | Run local quality checks. |
 
 API smoke example:
 
 ```bash
-TRANSACTIONS_SOURCE=api TRANSACTIONS_API_KEY=your-token make api-smoke
+TRANSACTIONS_SOURCE=api make api-smoke
 ```
+
+If an API key was issued, add `TRANSACTIONS_API_KEY=your-token`.
 
 ## Outputs
 

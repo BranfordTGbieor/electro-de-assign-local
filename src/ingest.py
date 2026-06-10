@@ -43,7 +43,8 @@ def run_ingestion(mode: str = "full", watermark_output: Path | None = None) -> d
         lower_bound = effective_watermark(previous_watermark, settings.watermark_lookback_days)
 
     with timed_step(durations, "source_load"):
-        records = load_transactions(settings, watermark=lower_bound)
+        loaded = load_transactions(settings, watermark=lower_bound)
+        records = loaded.records
     with timed_step(durations, "validation"):
         valid_records, invalid_records = validate_transactions(records, schema=schema)
     log_event(
@@ -103,6 +104,7 @@ def run_ingestion(mode: str = "full", watermark_output: Path | None = None) -> d
         "batch_id": batch_id,
         "mode": mode,
         "source": settings.source,
+        "resolved_source": loaded.resolved_source,
         "previous_watermark": previous_watermark,
         "effective_lower_bound": lower_bound,
         "ingestion_timestamp": ingestion_timestamp,
